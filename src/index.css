@@ -1,0 +1,61 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Color Palette - Teal to Gray Gradient */
+  --teal-dark: #1a4d4d;
+  --teal-medium-dark: #2d6b6b;
+  --teal-medium: #4a9a9a;
+  --gray-medium: #8b8b8b;
+  --gray-light: #e5e5e5;
+  --white: #ffffff;
+  --off-white: #faf9f6;
+  
+  /* Accent colors */
+  --accent-primary: var(--teal-medium);
+  --accent-secondary: var(--teal-dark);
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  background-color: var(--off-white);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+

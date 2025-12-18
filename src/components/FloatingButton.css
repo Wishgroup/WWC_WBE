@@ -1,0 +1,124 @@
+.floating-join-button {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 999;
+  padding: 16px 32px;
+  background: var(--teal-dark);
+  color: var(--white);
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(26, 77, 77, 0.4);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.floating-join-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.floating-join-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.floating-join-button:hover {
+  background: var(--teal-medium-dark);
+  box-shadow: 0 8px 28px rgba(26, 77, 77, 0.6);
+}
+
+.floating-join-button:active {
+  box-shadow: 0 2px 12px rgba(26, 77, 77, 0.4);
+}
+
+.floating-join-button.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+  animation: float 3s ease-in-out infinite;
+}
+
+.floating-join-button.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  visibility: hidden;
+  animation: none;
+}
+
+.button-text {
+  white-space: nowrap;
+}
+
+.button-icon {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.floating-join-button:hover .button-icon {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .floating-join-button {
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+  
+  .button-text {
+    display: none;
+  }
+  
+  .floating-join-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    padding: 0;
+    justify-content: center;
+  }
+  
+  .button-icon {
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-join-button {
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
