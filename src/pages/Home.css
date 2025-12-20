@@ -1,0 +1,20 @@
+.video-section {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.background-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .background-video {
+    min-height: 400px;
+    object-fit: cover;
+  }
+}
+

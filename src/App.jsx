@@ -1,24 +1,26 @@
 import React from 'react'
-import Header from './components/Header'
-import Hero from './components/Hero'
-import Memberships from './components/Memberships'
-import Features from './components/Features'
-import Testimonials from './components/Testimonials'
-import Footer from './components/Footer'
-import FloatingButton from './components/FloatingButton'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Join from './pages/Join'
+import PageTransition from './components/PageTransition'
 import './App.css'
+
+function AppRoutes() {
+  return (
+    <PageTransition>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/join" element={<Join />} />
+      </Routes>
+    </PageTransition>
+  )
+}
 
 function App() {
   return (
-    <div className="App">
-      <Header />
-      <Hero />
-      <Memberships />
-      <Features />
-      <Testimonials />
-      <Footer />
-      <FloatingButton />
-    </div>
+    <Router>
+      <AppRoutes />
+    </Router>
   )
 }
 

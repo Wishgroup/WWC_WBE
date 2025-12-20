@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './FloatingButton.css'
 
 const FloatingButton = () => {
+  const navigate = useNavigate()
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -29,11 +31,8 @@ const FloatingButton = () => {
   }, [])
 
   const handleClick = () => {
-    // Scroll to memberships section or trigger join action
-    const membershipsSection = document.getElementById('memberships')
-    if (membershipsSection) {
-      membershipsSection.scrollIntoView({ behavior: 'smooth' })
-    }
+    // Navigate to join page
+    navigate('/join')
   }
 
   return (

@@ -1,11 +1,22 @@
 import React from 'react'
-import bgImage from '../../WWC_WBE/10x/Front Annual.png'
+import { useNavigate } from 'react-router-dom'
+import bgVideo from '../../WWC_WBE/10x/bg_video.mp4'
 import LiquidEther from './LiquidEther'
 import './Hero.css'
 
 const Hero = () => {
+  const navigate = useNavigate()
   return (
-    <section className="hero" style={{ backgroundImage: `url(${bgImage})` }}>
+    <section className="hero">
+      <video 
+        className="hero-background-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+      >
+        <source src={bgVideo} type="video/mp4" />
+      </video>
       <div className="hero-overlay"></div>
       <div className="hero-liquid-ether">
         <LiquidEther
@@ -28,12 +39,32 @@ const Hero = () => {
       </div>
       <div className="hero-content">
         <div className="hero-text">
-          <h1 className="hero-title fade-in-down">There's still time to save 10%</h1>
+          {/* <h1 className="hero-title fade-in-down">Wish Waves Club</h1>
+          <h2 className="hero-tagline fade-in-down">Beyond the Waves</h2>
+          <p className="hero-description fade-in-up stagger-1">
+            Where lifestyle, ocean experiences, and trusted value come together.
+          </p> */}
           <p className="hero-subtitle fade-in-up stagger-1">
-            Join Wish Waves Club and unlock exclusive membership benefits. 
-            Don't miss the chance to save 10% on annual memberships, now with free shipping for a limited time.
+            A global membership community designed for people who value connection, meaningful experiences, and long-term purpose.
           </p>
-          <button className="hero-cta fade-in-up stagger-2 smooth-hover">Join Now</button>
+          <div className="hero-ctas fade-in-up stagger-2">
+            <button 
+              className="hero-cta hero-cta-primary smooth-hover"
+              onClick={() => {
+                navigate('/join')
+              }}
+            >
+              Join Now
+            </button>
+            <button 
+              className="hero-cta hero-cta-secondary smooth-hover"
+              onClick={() => {
+                navigate('/join')
+              }}
+            >
+              Explore Membership
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -1,8 +1,10 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useScrollAnimation } from '../hooks/useScrollAnimation'
 import './Testimonials.css'
 
 const Testimonials = () => {
+  const navigate = useNavigate()
   const [sectionRef, isSectionVisible] = useScrollAnimation({ threshold: 0.1 })
   const cards = [
     {
@@ -118,7 +120,14 @@ const Testimonials = () => {
           ))}
         </div>
         <div className={`testimonials-cta ${isSectionVisible ? 'fade-in-up' : 'animate-on-scroll'}`}>
-          <button className="join-now-button smooth-hover">JOIN NOW</button>
+          <button 
+            className="join-now-button smooth-hover"
+            onClick={() => {
+              navigate('/join')
+            }}
+          >
+            JOIN NOW
+          </button>
         </div>
       </div>
     </section>

@@ -6,33 +6,33 @@ const Features = () => {
   const [sectionRef, isSectionVisible] = useScrollAnimation({ threshold: 0.1 })
   const features = [
     {
-      title: 'Exclusive Event Access',
-      description: 'Get priority access to curated events, workshops, and experiences designed exclusively for members.',
+      title: 'Complimentary Event Access',
+      description: 'Complimentary access to club events throughout the year.',
       icon: '🎫'
     },
     {
-      title: 'Member Discounts',
-      description: 'Enjoy significant savings on events, products, and services with exclusive member-only pricing.',
+      title: 'Annual Gifts',
+      description: 'Annual gifts for member families.',
+      icon: '🎁'
+    },
+    {
+      title: 'Destination Experiences',
+      description: 'Destination stays and experiences.',
+      icon: '✈️'
+    },
+    {
+      title: 'Partner Discounts',
+      description: 'Partner discounts across key lifestyle categories.',
       icon: '💰'
     },
     {
-      title: 'Community Network',
-      description: 'Connect with like-minded individuals and build meaningful relationships through our member community.',
-      icon: '🤝'
-    },
-    {
-      title: 'Early Access',
-      description: 'Be the first to know about new experiences, events, and opportunities before they go public.',
-      icon: '⭐'
-    },
-    {
-      title: 'Personalized Experiences',
-      description: 'Receive tailored recommendations and experiences based on your interests and preferences.',
+      title: 'Referral Rewards',
+      description: 'Referral rewards leading to free membership.',
       icon: '🎯'
     },
     {
-      title: 'VIP Treatment',
-      description: 'Enjoy premium perks including priority seating, dedicated support, and exclusive member lounges.',
+      title: 'Partner Privileges',
+      description: 'Exclusive partner benefits delivering a minimum of 20% value across hotels, travel, dining, wellness, and retail.',
       icon: '👑'
     }
   ]
@@ -41,10 +41,9 @@ const Features = () => {
     <section id="benefits" className="features" ref={sectionRef}>
       <div className="features-container">
         <div className={`section-header ${isSectionVisible ? 'fade-in-up' : 'animate-on-scroll'}`}>
-          <h2 className="section-title">Get a complete picture of your membership</h2>
+          <h2 className="section-title">What Members Enjoy</h2>
           <p className="section-subtitle">
-            No other membership gives you a more comprehensive view of exclusive benefits 
-            and experiences– and tells you how to make the most of them.
+            Wish Waves Club members gain access to a wide range of benefits across lifestyle, travel, wellness, and experiences.
           </p>
         </div>
 
@@ -58,66 +57,21 @@ const Features = () => {
           ))}
         </div>
 
-        <div className="features-showcase">
-          <div className={`showcase-item ${isSectionVisible ? 'fade-in-left' : 'animate-on-scroll'} stagger-1`}>
-            <div className="showcase-content">
-              <h3 className="showcase-title">Quantify your membership value</h3>
-              <p className="showcase-text">
-                Track your savings, events attended, and experiences enjoyed. 
-                See the real value of your Wish Waves Club membership.
-              </p>
-            </div>
-            <div className="showcase-image">
-              <div className="placeholder-image" style={{ background: 'linear-gradient(135deg, var(--teal-medium), var(--teal-dark))' }}>
-                <span>Membership Dashboard</span>
-              </div>
-            </div>
+        <div className={`partner-privileges ${isSectionVisible ? 'fade-in-up' : 'animate-on-scroll'}`}>
+          <h3 className="partner-title">Partner Privileges</h3>
+          <p className="partner-description">
+            Members enjoy exclusive partner benefits delivering a minimum of 20% value, across:
+          </p>
+          <div className="partner-categories">
+            <div className="partner-category">Hotels & Resorts</div>
+            <div className="partner-category">Travel & Experiences</div>
+            <div className="partner-category">Dining & Cafés</div>
+            <div className="partner-category">Wellness & Fitness</div>
+            <div className="partner-category">Retail & Premium Services</div>
           </div>
-
-          <div className={`showcase-item reverse ${isSectionVisible ? 'fade-in-right' : 'animate-on-scroll'} stagger-2`}>
-            <div className="showcase-content">
-              <h3 className="showcase-title">Extend your network and experiences</h3>
-              <p className="showcase-text">
-                Connect with a community of members who share your interests. 
-                Build lasting relationships and discover new opportunities.
-              </p>
-            </div>
-            <div className="showcase-image">
-              <div className="placeholder-image" style={{ background: 'linear-gradient(135deg, var(--teal-dark), var(--gray-medium))' }}>
-                <span>Community Network</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={`showcase-item ${isSectionVisible ? 'fade-in-left' : 'animate-on-scroll'} stagger-3`}>
-            <div className="showcase-content">
-              <h3 className="showcase-title">Optimize your event calendar</h3>
-              <p className="showcase-text">
-                Get personalized event recommendations and never miss an opportunity 
-                that matches your interests and schedule.
-              </p>
-            </div>
-            <div className="showcase-image">
-              <div className="placeholder-image" style={{ background: 'linear-gradient(135deg, var(--teal-medium), var(--gray-light))' }}>
-                <span>Event Calendar</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={`showcase-item reverse ${isSectionVisible ? 'fade-in-right' : 'animate-on-scroll'} stagger-4`}>
-            <div className="showcase-content">
-              <h3 className="showcase-title">Measure the impact of every experience</h3>
-              <p className="showcase-text">
-                Track your journey, see your growth, and understand how each 
-                membership benefit contributes to your personal and professional development.
-              </p>
-            </div>
-            <div className="showcase-image">
-              <div className="placeholder-image" style={{ background: 'linear-gradient(135deg, var(--gray-medium), var(--teal-medium))' }}>
-                <span>Experience Tracker</span>
-              </div>
-            </div>
-          </div>
+          <p className="partner-note">
+            All benefits are subject to partner availability and terms.
+          </p>
         </div>
       </div>
     </section>
