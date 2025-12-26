@@ -6,6 +6,7 @@ import Benefits from './pages/Benefits'
 import Events from './pages/Events'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import PaymentSuccess from './pages/PaymentSuccess'
 import AdminDashboard from './pages/AdminDashboard'
 import MemberDashboard from './pages/MemberDashboard'
 import VendorDashboard from './pages/VendorDashboard'
@@ -24,6 +25,10 @@ function AppRoutes() {
         <Route path="/events" element={<Events />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/register/success" element={<PaymentSuccess />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/failed" element={<PaymentSuccess />} />
+        <Route path="/payment/response" element={<PaymentSuccess />} />
         
         {/* Protected routes */}
         <Route 
@@ -60,12 +65,7 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <Router>
       <AppRoutes />
     </Router>
   )

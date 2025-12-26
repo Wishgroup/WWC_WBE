@@ -1,6 +1,5 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { authAPI, setTokenGetter } from '../services/api'
+import React, { createContext, useState, useEffect, useContext } from 'react'
+import { authAPI } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -13,166 +12,110 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  const { 
-    user: auth0User, 
-    isAuthenticated: auth0IsAuthenticated, 
-    isLoading: auth0Loading,
-    getAccessTokenSilently,
-    loginWithRedirect,
-    logout: auth0Logout,
-  } = useAuth0()
-
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
+  const [token, setToken] = useState(localStorage.getItem('token'))
 
-  // Sync Auth0 user with backend database
   useEffect(() => {
-    const syncUser = async () => {
-      if (auth0Loading) {
-        setLoading(true)
-        return
-      }
-
-      if (!auth0IsAuthenticated || !auth0User) {
-        setUser(null)
-        setLoading(false)
-        return
-      }
-
-      // User is authenticated with Auth0, sync with backend
-      setSyncing(true)
-      try {
-        const data = await authAPI.syncUser()
-        if (data.success && data.user) {
-          setUser(data.user)
-        } else {
-          console.error('Failed to sync user:', data.error)
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Error syncing user:', error)
-        // Try to get user info anyway
-        try {
-          const userData = await authAPI.getCurrentUser()
-          if (userData.success && userData.user) {
-            setUser(userData.user)
-          }
-        } catch (err) {
-          console.error('Error fetching user:', err)
-          setUser(null)
-        }
-      } finally {
-        setSyncing(false)
-        setLoading(false)
-      }
+    // Check if user is logged in on mount
+    if (token) {
+      fetchUser()
+    } else {
+      setLoading(false)
     }
+  }, [token])
 
-    syncUser()
-  }, [auth0IsAuthenticated, auth0User, auth0Loading])
-
-  const login = async (options = {}) => {
+  const fetchUser = async () => {
     try {
-      console.log('Attempting Auth0 login with options:', options)
-      console.log('Auth0Provider ready:', !!loginWithRedirect)
-      
-      await loginWithRedirect({
-        authorizationParams: {
-          screen_hint: options.userType === 'admin' ? 'login' : 'signup',
-        },
-        appState: {
-          returnTo: window.location.pathname,
-          userType: options.userType || 'member',
-        },
-      })
-      
-      console.log('loginWithRedirect called successfully')
+      const data = await authAPI.getCurrentUser()
+      if (data.success) {
+        setUser(data.user)
+      } else {
+        // Token invalid, clear it
+        logout()
+      }
     } catch (error) {
-      console.error('Login error details:', {
-        error,
-        message: error.message,
-        stack: error.stack,
-      })
-      alert(`Login error: ${error.message || 'Failed to redirect to Auth0. Please check the browser console for details.'}`)
+      console.error('Error fetching user:', error)
+      logout()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const login = async (email, password, userType = 'member') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:45',message:'login function called',data:{email,userType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    try {
+      const data = await authAPI.login(email, password, userType)
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:49',message:'API response received',data:{hasSuccess:!!data?.success,hasUser:!!data?.user,userRole:data?.user?.role,dataKeys:Object.keys(data||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+      console.log('[DEBUG] AuthContext - API response:', data);
+      // #endregion
+      
+      if (data.success && data.user) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:52',message:'Setting token and user',data:{token:data.token?.substring(0,20)+'...',userRole:data.user.role,userId:data.user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        setToken(data.token)
+        setUser(data.user)
+        localStorage.setItem('token', data.token)
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:56',message:'Returning success',data:{userRole:data.user.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+        // #endregion
+        return { success: true, user: data.user }
+      }
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:59',message:'Login failed - no success or user',data:{hasSuccess:!!data?.success,hasUser:!!data?.user,error:data?.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return { success: false, error: data.error || 'Login failed' }
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:62',message:'Exception in login',data:{error:error?.message,errorStack:error?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      console.error('Login error in AuthContext:', error)
       return { success: false, error: error.message || 'Login failed' }
     }
   }
 
-  const register = async (options = {}) => {
+  const register = async (email, password, fullName, membershipType) => {
     try {
-      await loginWithRedirect({
-        ...options,
-        screen_hint: 'signup',
-      })
+      const data = await authAPI.register(email, password, fullName, membershipType)
+      if (data.success) {
+        setToken(data.token)
+        setUser(data.user)
+        localStorage.setItem('token', data.token)
+        return { success: true, user: data.user }
+      }
+      return { success: false, error: data.error }
     } catch (error) {
-      console.error('Registration error:', error)
       return { success: false, error: error.message || 'Registration failed' }
     }
   }
 
-  const logout = async () => {
-    try {
-      // Call backend logout endpoint for audit logging
-      try {
-        await authAPI.logout()
-      } catch (error) {
-        // Don't fail logout if backend call fails
-        console.error('Backend logout error:', error)
-      }
-      
-      // Clear local state
-      setUser(null)
-      localStorage.removeItem('admin_api_key')
-      
-      // Clear Auth0 cache from localStorage
-      const auth0CacheKeys = Object.keys(localStorage).filter(key => 
-        key.startsWith('@@auth0spajs@@') || 
-        key.startsWith('auth0') ||
-        key.includes('auth0')
-      )
-      auth0CacheKeys.forEach(key => localStorage.removeItem(key))
-      
-      // Auth0 logout - this will clear the session and redirect
-      auth0Logout({
-        returnTo: window.location.origin,
-        federated: false, // Don't logout from identity provider
-      })
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Even if logout fails, clear local state
-      setUser(null)
-      localStorage.removeItem('admin_api_key')
-    }
+  const logout = () => {
+    setToken(null)
+    setUser(null)
+    localStorage.removeItem('token')
+    localStorage.removeItem('admin_api_key')
   }
-
-  const getAccessToken = useCallback(async () => {
-    try {
-      return await getAccessTokenSilently()
-    } catch (error) {
-      console.error('Error getting access token:', error)
-      return null
-    }
-  }, [getAccessTokenSilently])
-
-  // Set token getter for API service
-  useEffect(() => {
-    setTokenGetter(getAccessToken)
-    return () => setTokenGetter(null)
-  }, [getAccessToken])
 
   const value = {
     user,
-    loading: loading || syncing,
+    token,
+    loading,
     login,
     register,
     logout,
-    getAccessToken,
-    isAuthenticated: auth0IsAuthenticated && !!user,
+    isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isMember: user?.role === 'member',
     isVendor: user?.role === 'vendor',
-    auth0User, // Expose Auth0 user for advanced use cases
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+

@@ -1,0 +1,262 @@
+.payment-success-page {
+  min-height: 100vh;
+  background: var(--off-white);
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-success-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  margin-top: 80px;
+}
+
+.payment-success-card {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 60px 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.payment-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.payment-status h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--teal-dark);
+  margin: 0;
+}
+
+.payment-status p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Success State */
+.payment-status.success {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  color: #10b981;
+  margin-bottom: 8px;
+}
+
+.success-icon svg {
+  width: 100%;
+  height: 100%;
+  animation: scaleIn 0.5s ease-out;
+}
+
+.welcome-message {
+  background: linear-gradient(135deg, #f0f9fa 0%, #e0f2f5 100%);
+  border-left: 4px solid var(--teal-dark);
+  padding: 30px;
+  border-radius: 8px;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.welcome-message h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--teal-dark);
+  margin: 0 0 16px 0;
+}
+
+.welcome-message p {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin: 12px 0;
+  line-height: 1.8;
+}
+
+.success-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-button {
+  padding: 14px 32px;
+  background: var(--teal-dark);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dashboard-button:hover {
+  background: var(--teal-medium-dark);
+}
+
+.redirect-notice {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Verifying State */
+.payment-status.verifying {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--gray-light);
+  border-top-color: var(--teal-dark);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Pending State */
+.payment-status.pending {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.pending-icon {
+  width: 80px;
+  height: 80px;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+
+.pending-icon svg {
+  width: 100%;
+  height: 100%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Error State */
+.payment-status.error {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.error-icon {
+  width: 80px;
+  height: 80px;
+  color: #ef4444;
+  margin-bottom: 8px;
+}
+
+.error-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.error-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.contact-button,
+.back-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 300px;
+}
+
+.contact-button {
+  background: var(--teal-dark);
+  color: var(--white);
+}
+
+.contact-button:hover {
+  background: var(--teal-medium-dark);
+}
+
+.back-button {
+  background: var(--white);
+  color: var(--teal-dark);
+  border: 2px solid var(--teal-dark);
+}
+
+.back-button:hover {
+  background: var(--gray-light);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .payment-success-card {
+    padding: 40px 24px;
+  }
+
+  .payment-status h1 {
+    font-size: 28px;
+  }
+
+  .welcome-message {
+    padding: 24px 20px;
+  }
+
+  .welcome-message h2 {
+    font-size: 24px;
+  }
+}
+

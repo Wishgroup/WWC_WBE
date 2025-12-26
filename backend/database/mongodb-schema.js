@@ -26,7 +26,6 @@ export const indexes = {
   // Members Collection
   members: [
     { key: { email: 1 }, unique: true, name: 'idx_email' },
-    { key: { auth0_id: 1 }, unique: true, sparse: true, name: 'idx_auth0_id' },
     { key: { membership_status: 1 }, name: 'idx_membership_status' },
     { key: { fraud_status: 1 }, name: 'idx_fraud_status' },
     { key: { referral_code: 1 }, unique: true, sparse: true, name: 'idx_referral_code' },
@@ -44,7 +43,6 @@ export const indexes = {
   // Vendors Collection
   vendors: [
     { key: { vendor_code: 1 }, unique: true, name: 'idx_vendor_code' },
-    { key: { auth0_id: 1 }, unique: true, sparse: true, name: 'idx_auth0_id' },
     { key: { country: 1 }, name: 'idx_country' },
     { key: { is_active: 1 }, name: 'idx_is_active' },
   ],
@@ -99,7 +97,6 @@ export const indexes = {
   // Admin Users Collection
   admin_users: [
     { key: { email: 1 }, unique: true, name: 'idx_email' },
-    { key: { auth0_id: 1 }, unique: true, sparse: true, name: 'idx_auth0_id' },
     { key: { is_active: 1 }, name: 'idx_is_active' },
   ],
 
