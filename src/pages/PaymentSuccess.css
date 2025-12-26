@@ -99,7 +99,7 @@
   background: var(--teal-dark);
   color: var(--white);
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -178,7 +178,7 @@
 .back-button {
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;

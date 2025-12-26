@@ -12,6 +12,7 @@ import MemberDashboard from './pages/MemberDashboard'
 import VendorDashboard from './pages/VendorDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import PageTransition from './components/PageTransition'
+import FloatingButton from './components/FloatingButton'
 import './App.css'
 
 function AppRoutes() {
@@ -67,6 +68,7 @@ function App() {
   return (
     <Router>
       <AppRoutes />
+      <FloatingButton />
     </Router>
   )
 }

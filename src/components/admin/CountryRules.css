@@ -77,7 +77,7 @@
   background: var(--teal-dark);
   color: var(--white);
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

@@ -1,11 +1,12 @@
 .features {
-  padding: 100px 24px;
+  padding: 100px 0;
   background: var(--white);
 }
 
 .features-container {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 24px;
 }
 
 .section-header {
@@ -14,10 +15,11 @@
 }
 
 .section-title {
-  font-size: 48px;
+  font-size: 80px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 16px;
+  line-height: 1.1;
 }
 
 .section-subtitle {
@@ -126,7 +128,7 @@
   padding: 12px 24px;
   background: var(--white);
   border: 2px solid var(--teal-medium);
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 16px;
   font-weight: 600;
   color: var(--teal-dark);
@@ -148,11 +150,15 @@
 
 @media (max-width: 968px) {
   .features {
-    padding: 60px 16px;
+    padding: 60px 0;
+  }
+
+  .features-container {
+    padding: 0 16px;
   }
 
   .section-title {
-    font-size: 36px;
+    font-size: 56px;
   }
 
   .section-subtitle {

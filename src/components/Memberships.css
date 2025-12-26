@@ -1,6 +1,33 @@
 .memberships {
   padding: 100px 24px;
   background: var(--off-white);
+  position: relative;
+  background-image: url('/assets/Homepage/membershipsection.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.memberships::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  z-index: 0;
+}
+
+.memberships-container {
+  position: relative;
+  z-index: 1;
 }
 
 .memberships-container {
@@ -71,6 +98,7 @@
 .membership-info {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 .membership-card:hover {
@@ -79,8 +107,7 @@
 }
 
 .membership-card.highlighted {
-  border: 2px solid var(--teal-medium);
-  transform: scale(1.02);
+  /* Same styling as regular cards - no special treatment */
 }
 
 .membership-badge {
@@ -123,7 +150,7 @@
 
 .membership-features {
   list-style: none;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   flex-grow: 1;
 }
 
@@ -151,12 +178,19 @@
   color: var(--white);
   font-size: 14px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 50px;
   transition: background 0.2s;
+  border: none;
+  cursor: pointer;
+  margin-top: auto;
 }
 
 .membership-cta:hover {
   background: var(--teal-medium-dark);
+}
+
+.membership-card.highlighted .membership-cta {
+  margin-top: auto;
 }
 
 .promotional-benefits {

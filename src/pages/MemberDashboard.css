@@ -34,7 +34,7 @@
   background: var(--gray-medium);
   color: var(--white);
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -64,10 +64,10 @@
 }
 
 .membership-card {
-  background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-medium) 100%);
+  background: var(--white);
   border-radius: 16px;
   padding: 32px;
-  color: var(--white);
+  color: var(--text-primary);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
@@ -77,14 +77,14 @@
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid var(--gray-light);
 }
 
 .card-header h2 {
   font-size: 24px;
   font-weight: 700;
   margin: 0;
-  color: var(--white);
+  color: var(--teal-dark);
 }
 
 .card-status-badge {
@@ -120,7 +120,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid var(--gray-light);
 }
 
 .card-label {
@@ -136,7 +136,7 @@
 
 .card-value.code {
   font-family: monospace;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--off-white);
   padding: 4px 12px;
   border-radius: 6px;
 }
@@ -150,19 +150,19 @@
 .action-button {
   flex: 1;
   padding: 12px 24px;
-  border: 2px solid var(--white);
-  border-radius: 8px;
+  border: 2px solid var(--teal-medium);
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   background: transparent;
-  color: var(--white);
+  color: var(--teal-dark);
 }
 
 .action-button:hover:not(:disabled) {
-  background: var(--white);
-  color: var(--teal-dark);
+  background: var(--teal-medium);
+  color: var(--white);
 }
 
 .action-button:disabled {
@@ -311,7 +311,7 @@
   background: var(--teal-dark);
   color: var(--white);
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -389,7 +389,7 @@
   flex: 1;
   padding: 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

@@ -1,272 +1,228 @@
-import React, { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
+import React, { useState, useEffect, useCallback } from 'react'
 import './BenefitsCarousel.css'
 
-const BenefitsCarousel = () => {
-  const trackRef = useRef(null)
-  const cardsRef = useRef([])
-  const isDownRef = useRef(false)
-  const startXRef = useRef(0)
-  const currentXRef = useRef(0)
-  const targetXRef = useRef(0)
-  const velocityRef = useRef(0)
-  const animationFrameRef = useRef(null)
-  const autoRotateSpeedRef = useRef(0.5) // Auto-rotation speed
-  const isUserInteractingRef = useRef(false)
+const benefits = [
+  {
+    id: 1,
+    title: 'Complimentary Event Access',
+    description: 'Complimentary access to club events throughout the year.',
+    image: '/assets/Events acc/complementary events.jpg',
+    screenColor: 'green'
+  },
+  {
+    id: 2,
+    title: 'Annual Gifts',
+    description: 'Annual gifts for member families.',
+    image: '/assets/Events acc/Annual Gifts.jpg',
+    screenColor: 'yellow'
+  },
+  {
+    id: 3,
+    title: 'Destination Experiences',
+    description: 'Destination stays and experiences.',
+    image: '/assets/Events acc/Destination experience.jpg',
+    screenColor: 'blue'
+  },
+  {
+    id: 4,
+    title: 'Partner Discounts',
+    description: 'Partner discounts across key lifestyle categories.',
+    image: '/assets/Events acc/Destinationexperience.jpg',
+    screenColor: 'green'
+  },
+  {
+    id: 5,
+    title: 'Referral Rewards',
+    description: 'Referral rewards leading to free membership.',
+    image: '/assets/Events acc/Referrelrewards.png',
+    screenColor: 'blue'
+  },
+  {
+    id: 6,
+    title: 'Partner Privileges',
+    description: 'Exclusive partner benefits delivering a minimum of 20% value across hotels, travel, dining, wellness, and retail.',
+    image: '/assets/Events acc/PartnerPrivilages.jpg',
+    screenColor: 'silver'
+  }
+]
 
-  const benefits = [
-    {
-      icon: '🎫',
-      title: 'Complimentary Event Access',
-      description: 'Complimentary access to club events throughout the year.',
-      image: '/assets/Events acc/complementary events.jpg'
-    },
-    {
-      icon: '🎁',
-      title: 'Annual Gifts',
-      description: 'Annual gifts for member families.',
-      image: '/assets/Events acc/Annual Gifts.jpg'
-    },
-    {
-      icon: '✈️',
-      title: 'Destination Experiences',
-      description: 'Destination stays and experiences.',
-      image: '/assets/Events acc/Destination experience.jpg'
-    },
-    {
-      icon: '💰',
-      title: 'Partner Discounts',
-      description: 'Partner discounts across key lifestyle categories.',
-      image: '/assets/Events acc/Destinationexperience.jpg'
-    },
-    {
-      icon: '🎯',
-      title: 'Referral Rewards',
-      description: 'Referral rewards leading to free membership.',
-      image: '/assets/Events acc/Referrelrewards.jpeg'
-    },
-    {
-      icon: '👑',
-      title: 'Partner Privileges',
-      description: 'Exclusive partner benefits delivering a minimum of 20% value across hotels, travel, dining, wellness, and retail.',
-      image: '/assets/Events acc/PartnerPrivilages.jpg'
+const screenColorClasses = {
+  green: 'benefits-screen-green',
+  yellow: 'benefits-screen-yellow',
+  blue: 'benefits-screen-blue',
+  silver: 'benefits-screen-silver',
+}
+
+const glowColorClasses = {
+  green: 'benefits-glow-green',
+  yellow: 'benefits-glow-yellow',
+  blue: 'benefits-glow-blue',
+  silver: 'benefits-glow-silver',
+}
+
+const BenefitsCarousel = () => {
+  const [activeIndex, setActiveIndex] = useState(2)
+  const [isDragging, setIsDragging] = useState(false)
+  const [startX, setStartX] = useState(0)
+  const [dragOffset, setDragOffset] = useState(0)
+
+  const totalCards = benefits.length
+
+  const getCardStyle = (index) => {
+    const diff = index - activeIndex
+    const normalizedDiff = diff + dragOffset / 150
+    
+    // Cylindrical positioning - cards wrap around viewer
+    const cylinderRadius = 700 // radius of the cylinder (increased for bigger cards)
+    const anglePerCard = 22 // degrees between each card
+    const angle = normalizedDiff * anglePerCard
+    const angleRad = (angle * Math.PI) / 180
+    
+    // Calculate position on cylinder surface
+    const translateX = Math.sin(angleRad) * cylinderRadius
+    const translateZ = Math.cos(angleRad) * cylinderRadius - cylinderRadius // offset so center card is at z=0
+    const rotateY = -angle // face inward toward viewer
+    
+    const scale = 1 - Math.abs(normalizedDiff) * 0.03
+    const opacity = Math.max(0.3, 1 - Math.abs(normalizedDiff) * 0.12)
+    const zIndex = 10 - Math.abs(Math.round(normalizedDiff))
+
+    return {
+      transform: `
+        translateX(${translateX}px) 
+        translateZ(${translateZ}px) 
+        rotateY(${rotateY}deg) 
+        scale(${scale})
+      `,
+      opacity,
+      zIndex,
     }
-  ]
+  }
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true)
+    setStartX(e.clientX)
+  }
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return
+    const diff = e.clientX - startX
+    setDragOffset(diff)
+  }, [isDragging, startX])
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging) return
+    setIsDragging(false)
+    
+    const threshold = 75
+    if (dragOffset > threshold && activeIndex > 0) {
+      setActiveIndex(prev => prev - 1)
+    } else if (dragOffset < -threshold && activeIndex < totalCards - 1) {
+      setActiveIndex(prev => prev + 1)
+    }
+    
+    setDragOffset(0)
+  }, [isDragging, dragOffset, activeIndex, totalCards])
+
+  const handleTouchStart = (e) => {
+    setIsDragging(true)
+    setStartX(e.touches[0].clientX)
+  }
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging) return
+    const diff = e.touches[0].clientX - startX
+    setDragOffset(diff)
+  }, [isDragging, startX])
+
+  const handleTouchEnd = useCallback(() => {
+    handleMouseUp()
+  }, [handleMouseUp])
 
   useEffect(() => {
-    const track = trackRef.current
-    const cards = cardsRef.current
-    if (!track) return
-
-    // Mouse interaction handlers
-    const handleMouseDown = (e) => {
-      isDownRef.current = true
-      isUserInteractingRef.current = true
-      startXRef.current = e.clientX
-      velocityRef.current = 0
-    }
-
-    const handleMouseUp = () => {
-      isDownRef.current = false
-      // Keep user interaction flag for a bit to allow inertia to finish
-      setTimeout(() => {
-        if (!isDownRef.current) {
-          isUserInteractingRef.current = false
-        }
-      }, 500)
-    }
-
-    const handleMouseMove = (e) => {
-      if (!isDownRef.current) return
-
-      const center = window.innerWidth / 2
-      const distanceFromCenter = e.clientX - center
-      // Reverse direction: multiply by -1
-      velocityRef.current = distanceFromCenter * -0.05
-    }
-
-    // Touch support
-    const handleTouchStart = (e) => {
-      isDownRef.current = true
-      isUserInteractingRef.current = true
-      startXRef.current = e.touches[0].clientX
-      velocityRef.current = 0
-    }
-
-    const handleTouchEnd = () => {
-      isDownRef.current = false
-      setTimeout(() => {
-        if (!isDownRef.current) {
-          isUserInteractingRef.current = false
-        }
-      }, 500)
-    }
-
-    const handleTouchMove = (e) => {
-      if (!isDownRef.current) return
-      e.preventDefault()
-
-      const center = window.innerWidth / 2
-      const distanceFromCenter = e.touches[0].clientX - center
-      // Reverse direction: multiply by -1
-      velocityRef.current = distanceFromCenter * -0.05
-    }
-
-    // Update card rotation and scale based on position
-    const updateCards = () => {
-      const center = window.innerWidth / 2
-      const allCards = track.querySelectorAll('.benefits-carousel-card')
-
-      allCards.forEach((card) => {
-        if (!card) return
-
-        const rect = card.getBoundingClientRect()
-        const cardCenter = rect.left + rect.width / 2
-        const offset = cardCenter - center
-
-        const rotateY = offset * 0.03
-        const scale = Math.max(0.8, 1 - Math.abs(offset) / 1500)
-        const opacity = Math.max(0.6, 1 - Math.abs(offset) / 2000)
-
-        // Use direct transform for better performance
-        card.style.transform = `
-          translateZ(0)
-          rotateY(${rotateY}deg)
-          scale(${scale})
-        `
-        card.style.opacity = opacity
-      })
-    }
-
-    // Calculate card width for infinite loop
-    const getCardWidth = () => {
-      return 420 // 400px width + 20px gap
-    }
-
-    // Animation loop with inertia and auto-rotation
-    const animate = () => {
-      if (!isDownRef.current) {
-        velocityRef.current *= 0.92 // friction
-        if (Math.abs(velocityRef.current) < 0.1) {
-          velocityRef.current = 0
-        }
-      }
-
-      // Auto-rotation when user is not interacting
-      if (!isUserInteractingRef.current && Math.abs(velocityRef.current) < 0.5) {
-        velocityRef.current = autoRotateSpeedRef.current
-      }
-
-      currentXRef.current += velocityRef.current
-
-      // Infinite loop: seamless wrapping
-      const cardWidth = getCardWidth()
-      const totalWidth = cardWidth * benefits.length
-      const centerOffset = window.innerWidth / 2 - cardWidth / 2
-      
-      // When we've moved one full set, reset to start seamlessly
-      if (currentXRef.current <= -centerOffset - totalWidth) {
-        currentXRef.current += totalWidth
-      } else if (currentXRef.current >= -centerOffset + totalWidth) {
-        currentXRef.current -= totalWidth
-      }
-      
-      // Apply direct transform for smooth performance
-      gsap.set(track, {
-        x: currentXRef.current
-      })
-
-      updateCards()
-      animationFrameRef.current = requestAnimationFrame(animate)
-    }
-
-    // Event listeners
-    const wrapper = track.parentElement
-    wrapper.addEventListener('mousedown', handleMouseDown)
-    window.addEventListener('mouseup', handleMouseUp)
     window.addEventListener('mousemove', handleMouseMove)
-    wrapper.addEventListener('touchstart', handleTouchStart, { passive: false })
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('touchmove', handleTouchMove)
     window.addEventListener('touchend', handleTouchEnd)
-    window.addEventListener('touchmove', handleTouchMove, { passive: false })
 
-    // Set initial position to center the first card
-    const cardWidth = 420 // 400px + 20px gap
-    const totalWidth = cardWidth * benefits.length
-    const centerOffset = window.innerWidth / 2 - cardWidth / 2
-    currentXRef.current = -centerOffset // Start with first card centered
-    
-    // Apply initial position
-    gsap.set(track, {
-      x: currentXRef.current
-    })
-
-    // Start animation loop
-    animate()
-
-    // Initial card update
-    setTimeout(updateCards, 100)
-
-    // Cleanup
     return () => {
-      wrapper.removeEventListener('mousedown', handleMouseDown)
-      window.removeEventListener('mouseup', handleMouseUp)
       window.removeEventListener('mousemove', handleMouseMove)
-      wrapper.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('mouseup', handleMouseUp)
       window.removeEventListener('touchmove', handleTouchMove)
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
+      window.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [])
+  }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
+
+  // Auto-advance carousel
+  useEffect(() => {
+    if (isDragging) return
+    
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev + 1) % totalCards)
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [isDragging, totalCards])
 
   return (
     <div className="benefits-carousel-wrapper">
-      <div className="benefits-carousel-track" ref={trackRef}>
-        {benefits.map((benefit, index) => (
-          <div
+      {/* 3D Carousel */}
+      <div 
+        className="benefits-carousel-perspective"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
+        <div className="benefits-carousel-container">
+          {benefits.map((benefit, index) => {
+            const style = getCardStyle(index)
+            
+            return (
+              <div
+                key={benefit.id}
+                className="benefits-carousel-card-3d"
+                style={style}
+                onClick={() => setActiveIndex(index)}
+              >
+                {/* Card Frame */}
+                <div className="benefits-card-frame">
+                  {/* Glow Effect */}
+                  <div className={`benefits-screen-glow ${glowColorClasses[benefit.screenColor]}`} />
+                  
+                  {/* Image/Content Area */}
+                  <div className={`benefits-card-screen ${screenColorClasses[benefit.screenColor]}`}>
+                    <img 
+                      src={benefit.image} 
+                      alt={benefit.title}
+                      className="benefits-card-image-3d"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                    />
+                  </div>
+
+                  {/* Bottom Content */}
+                  <div className="benefits-card-label">
+                    <div className="benefits-card-title-3d">{benefit.title}</div>
+                    <div className="benefits-card-description-3d">{benefit.description}</div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Pagination dots */}
+      <div className="benefits-pagination">
+        {benefits.map((_, index) => (
+          <button
             key={index}
-            ref={(el) => (cardsRef.current[index] = el)}
-            className="benefits-carousel-card"
-          >
-            <div className="benefits-card-image-wrapper">
-              <img 
-                src={benefit.image} 
-                alt={benefit.title}
-                className="benefits-card-image"
-                onError={(e) => {
-                  // Fallback if image doesn't load
-                  e.target.style.display = 'none'
-                }}
-              />
-            </div>
-            <div className="benefits-card-content">
-              <h3 className="benefits-card-title">{benefit.title}</h3>
-              <p className="benefits-card-description">{benefit.description}</p>
-            </div>
-          </div>
-        ))}
-        {/* Duplicate cards for infinite loop effect */}
-        {benefits.map((benefit, index) => (
-          <div
-            key={`duplicate-${index}`}
-            className="benefits-carousel-card"
-          >
-            <div className="benefits-card-image-wrapper">
-              <img 
-                src={benefit.image} 
-                alt={benefit.title}
-                className="benefits-card-image"
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                }}
-              />
-            </div>
-            <div className="benefits-card-content">
-              <h3 className="benefits-card-title">{benefit.title}</h3>
-              <p className="benefits-card-description">{benefit.description}</p>
-            </div>
-          </div>
+            className={`benefits-pagination-dot ${
+              index === activeIndex ? 'benefits-pagination-dot-active' : ''
+            }`}
+            onClick={() => setActiveIndex(index)}
+            aria-label={`Go to slide ${index + 1}`}
+          />
         ))}
       </div>
     </div>
@@ -274,4 +230,3 @@ const BenefitsCarousel = () => {
 }
 
 export default BenefitsCarousel
-

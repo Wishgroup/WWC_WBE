@@ -23,7 +23,7 @@
 }
 
 .footer-logo {
-  height: 70px;
+  height: 155px;
   width: auto;
   margin-bottom: 24px;
   filter: brightness(0) invert(1);
@@ -120,7 +120,7 @@
   color: var(--teal-dark);
   font-size: 14px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 50px;
   transition: background 0.2s;
 }
 

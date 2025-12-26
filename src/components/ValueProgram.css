@@ -63,6 +63,88 @@
   font-style: italic;
   padding-top: 24px;
   border-top: 2px solid var(--teal-medium);
+  margin-bottom: 32px;
+}
+
+.value-program-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.value-program-button {
+  position: relative;
+  padding: 16px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  background: rgb(245, 244, 243);
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+
+.value-button-filler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(143deg, rgb(111, 0, 212) 0%, rgb(255, 0, 129) 100%);
+  border-radius: 35px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.value-program-button:hover .value-button-filler {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.value-button-content {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+}
+
+.value-button-text-1,
+.value-button-text-2 {
+  display: inline-block;
+  transition: opacity 0.3s ease 0.1s;
+  white-space: nowrap;
+}
+
+.value-button-text-1 {
+  color: rgb(0, 0, 0);
+  opacity: 1;
+  position: relative;
+}
+
+.value-button-text-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: rgb(249, 249, 249);
+  opacity: 0;
+}
+
+.value-program-button:hover .value-button-text-1 {
+  opacity: 0;
+}
+
+.value-program-button:hover .value-button-text-2 {
+  opacity: 1;
+}
+
+.value-program-button:active {
+  transform: scale(0.98);
 }
 
 @media (max-width: 768px) {
@@ -85,6 +167,11 @@
 
   .value-feature {
     padding: 24px 16px;
+  }
+
+  .value-program-button {
+    padding: 14px 32px;
+    font-size: 14px;
   }
 }
 
