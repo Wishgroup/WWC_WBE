@@ -73,7 +73,7 @@ const Memberships = () => {
                   cvv={membership.id === 1 ? "847" : "923"}
                   frontImage={membership.id === 1 ? "/assets/3d/Images/anual_front.png" : undefined}
                   backImage={membership.id === 1 ? "/assets/3d/Images/anual_back.png" : undefined}
-                  flipBackImage={membership.id === 1}
+                  flipBackImage={false}
                 />
               </div>
 

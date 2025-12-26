@@ -1,0 +1,153 @@
+.offer-management {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.offers-section {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--teal-dark);
+}
+
+.create-btn {
+  padding: 10px 20px;
+  background: var(--teal-dark);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.create-btn:hover {
+  background: var(--teal-medium-dark);
+}
+
+.offers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.offer-card {
+  background: var(--off-white);
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid var(--gray-light);
+  transition: border-color 0.2s ease;
+}
+
+.offer-card:hover {
+  border-color: var(--teal-medium);
+}
+
+.offer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-light);
+}
+
+.offer-header h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--teal-dark);
+  margin: 0;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: #28a745;
+  color: var(--white);
+}
+
+.status-badge.inactive {
+  background: #6c757d;
+  color: var(--white);
+}
+
+.offer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.detail-item .label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.detail-item .value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.offer-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-light);
+}
+
+.edit-btn,
+.deactivate-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background: var(--teal-medium);
+  color: var(--white);
+}
+
+.edit-btn:hover {
+  background: var(--teal-dark);
+}
+
+.deactivate-btn {
+  background: var(--gray-medium);
+  color: var(--white);
+}
+
+.deactivate-btn:hover {
+  background: #6c757d;
+}
+
+

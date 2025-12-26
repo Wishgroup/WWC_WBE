@@ -1,5 +1,4 @@
 import React from 'react'
-import logo from '../../WWC_WBE/10x/logo.png'
 import './Footer.css'
 
 const Footer = () => {
@@ -8,7 +7,7 @@ const Footer = () => {
       <div className="footer-container">
         <div className="footer-top">
           <div className="footer-brand">
-            <img src={logo} alt="Wish Waves Club" className="footer-logo" />
+            <img src="/assets/Logos/WWC.png" alt="Wish Waves Club" className="footer-logo" />
             <p className="footer-mission">
               Our mission at Wish Waves Club is to unlock exclusive experiences 
               and meaningful connections for our members.

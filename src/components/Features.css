@@ -28,39 +28,9 @@
   line-height: 1.6;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
+/* Carousel spacing */
+.features-container > .benefits-carousel-wrapper {
   margin-bottom: 80px;
-}
-
-.feature-card {
-  text-align: center;
-  padding: 40px 24px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.feature-card:hover {
-  transform: translateY(-8px) scale(1.05);
-}
-
-.feature-icon {
-  font-size: 64px;
-  margin-bottom: 24px;
-}
-
-.feature-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
-}
-
-.feature-description {
-  font-size: 16px;
-  color: var(--text-secondary);
-  line-height: 1.6;
 }
 
 .features-showcase {
@@ -189,10 +159,6 @@
     font-size: 18px;
   }
 
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
 
   .showcase-item {
     grid-template-columns: 1fr;

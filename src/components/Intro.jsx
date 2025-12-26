@@ -1,5 +1,6 @@
 import React from 'react'
 import { useScrollAnimation } from '../hooks/useScrollAnimation'
+import BlurText from './BlurText'
 import './Intro.css'
 
 const Intro = () => {
@@ -11,16 +12,35 @@ const Intro = () => {
         <div className={`intro-content ${isSectionVisible ? 'fade-in-up' : 'animate-on-scroll'}`}>
           <h2 className="intro-title">More Than a Club. A Community.</h2>
           <div className="intro-text">
-            <p>
-              Wish Waves Club is a community-first membership inspired by global clubs such as Rotaract and Leo Club — reimagined for today's lifestyle-driven, experience-seeking generation.
-            </p>
+
             <p>
               We bring people together through curated lifestyle moments, ocean-led journeys, and a transparent value ecosystem that members can choose to participate in.
             </p>
             <div className="intro-statements">
-              <p className="statement">This is not a discount club.</p>
-              <p className="statement">This is not an investment scheme.</p>
-              <p className="statement highlight">This is a place to belong.</p>
+              <BlurText
+                text="This is not a discount club."
+                delay={150}
+                animateBy="words"
+                direction="top"
+                className="statement"
+                startDelay={0}
+              />
+              <BlurText
+                text="This is not an investment scheme."
+                delay={150}
+                animateBy="words"
+                direction="top"
+                className="statement"
+                startDelay={1600}
+              />
+              <BlurText
+                text="This is a place to belong."
+                delay={150}
+                animateBy="words"
+                direction="top"
+                className="statement highlight"
+                startDelay={3200}
+              />
             </div>
           </div>
         </div>
