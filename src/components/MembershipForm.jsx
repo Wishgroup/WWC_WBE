@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useScrollAnimation } from '../hooks/useScrollAnimation'
-import { paymentAPI } from '../services/api'
 import './MembershipForm.css'
 
 function MembershipForm() {
@@ -39,7 +38,9 @@ function MembershipForm() {
     emergencyMobile: '',
     
     // Payment Details
-    paymentMethod: 'Card',
+    paymentMethod: '',
+    transactionId: '',
+    paymentReceipt: null,
     
     // Policies
     confirmAccuracy: false,
@@ -47,49 +48,9 @@ function MembershipForm() {
     acceptPolicies: false,
     agreeToCommunications: false
   })
-
-  // Validation states
-  const [isBasicInfoValid, setIsBasicInfoValid] = useState(false)
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
-
-  // Validate all required fields up to Emergency Contact
-  const validateBasicInfo = () => {
-    const requiredFields = {
-      fullName: formData.fullName.trim(),
-      dateOfBirth: formData.dateOfBirth,
-      nationality: formData.nationality,
-      passportId: formData.passportId.trim(),
-      idFiles: formData.idFiles,
-      mobileNumber: formData.mobileNumber.trim(),
-      email: formData.email.trim(),
-      street: formData.street.trim(),
-      city: formData.city.trim(),
-      country: formData.country,
-      membershipType: formData.membershipType,
-      emergencyName: formData.emergencyName.trim(),
-      emergencyRelationship: formData.emergencyRelationship.trim(),
-      emergencyMobile: formData.emergencyMobile.trim(),
-    }
-
-    // Check if all required fields are filled
-    const allFieldsFilled = Object.values(requiredFields).every(value => {
-      if (value === null) return false
-      if (typeof value === 'string') return value.length > 0
-      if (value instanceof FileList) return value.length > 0
-      return true
-    })
-
-    // Validate email format
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-
-    return allFieldsFilled && emailValid
-  }
-
-  // Check validation whenever form data changes
-  useEffect(() => {
-    setIsBasicInfoValid(validateBasicInfo())
-  }, [formData])
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -112,103 +73,51 @@ function MembershipForm() {
     }
   }
 
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    // Final validation checks
-    if (!isBasicInfoValid) {
-      setMessage('Please fill in all required fields up to Emergency Contact')
-      return
-    }
-
-    if (!formData.confirmAccuracy || !formData.confirmNonRefundable || 
-        !formData.acceptPolicies || !formData.agreeToCommunications) {
-      setMessage('Please accept all policies and agreements')
-      return
-    }
-
     setIsSubmitting(true)
     setMessage('')
 
     try {
-      // Calculate membership amount
-      const membershipPrices = {
-        'Lifetime': 5000, // AED
-        'Annual': 1000,   // AED
-      }
-      const amount = membershipPrices[formData.membershipType] || membershipPrices['Annual']
-
-      // Prepare billing details
-      const billingDetails = {
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.mobileNumber,
-        address: formData.street,
-        city: formData.city,
-        state: '',
-        zip: '',
-        country: formData.country || 'AE',
-      }
-
-      // Initiate CC Avenue payment (card details will be collected by CC Avenue)
-      // Data will be saved to database only after successful payment
-      const paymentResult = await paymentAPI.initiateCCAvenuePayment({
-        membershipType: formData.membershipType.toLowerCase(),
-        amount,
-        billingDetails,
-        formData,
+      // Send form data to backend
+      const response = await fetch('http://localhost:3001/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: 'info@wishgroup.ae',
+          subject: `Membership Application from ${formData.fullName}`,
+          text: JSON.stringify(formData, null, 2),
+          html: `
+            <h2>New Membership Application</h2>
+            <pre>${JSON.stringify(formData, null, 2)}</pre>
+          `
+        })
       })
 
-      if (paymentResult && paymentResult.success) {
-        // Create a form to submit to CC Avenue
-        const form = document.createElement('form')
-        form.method = 'POST'
-        form.action = paymentResult.paymentUrl
-
-        // Add hidden fields
-        const fields = {
-          encRequest: paymentResult.encryptedData,
-          access_code: paymentResult.accessCode,
-        }
-
-        Object.entries(fields).forEach(([key, value]) => {
-          const input = document.createElement('input')
-          input.type = 'hidden'
-          input.name = key
-          input.value = value
-          form.appendChild(input)
+      if (response.ok) {
+        setMessage('Thank you! Your membership application has been submitted successfully.')
+        // Reset form
+        setFormData({
+          fullName: '', dateOfBirth: '', nationality: '', gender: '', passportId: '', idFiles: null,
+          mobileNumber: '', email: '', street: '', city: '', country: '',
+          membershipType: '', referralCode: '', referredBy: '', renewalPreference: '',
+          occupation: '', companyName: '', industry: '', businessEmail: '',
+          emergencyName: '', emergencyRelationship: '', emergencyMobile: '',
+          paymentMethod: '', transactionId: '', paymentReceipt: null,
+          confirmAccuracy: false, confirmNonRefundable: false, acceptPolicies: false, agreeToCommunications: false
         })
-
-        document.body.appendChild(form)
-        form.submit()
       } else {
-        const errorMsg = paymentResult?.error || paymentResult?.message || 'Failed to initiate payment'
-        throw new Error(errorMsg)
+        throw new Error('Failed to submit application')
       }
     } catch (error) {
-      console.error('Payment initiation error:', error)
-      
-      // Better error handling
-      let errorMessage = 'Failed to process payment. Please try again.'
-      
-      if (error.message) {
-        errorMessage = error.message
-      } else if (error.response) {
-        errorMessage = error.response.data?.error || error.response.data?.message || errorMessage
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage = 'Network error: Could not connect to server. Please check your internet connection and try again.'
-      }
-      
-      setMessage(errorMessage)
+      console.error('Error submitting form:', error)
+      setMessage('Please email us directly at info@wishgroup.ae with your application.')
+    } finally {
       setIsSubmitting(false)
+      setTimeout(() => setMessage(''), 5000)
     }
-  }
-
-  // Membership prices
-  const membershipPrices = {
-    'Lifetime': 5000,
-    'Annual': 1000,
   }
 
   return (
@@ -226,7 +135,7 @@ function MembershipForm() {
 
           <form className="membership-form" onSubmit={handleSubmit}>
             {message && (
-              <div className={`form-message ${message.includes('error') || message.includes('Failed') || message.includes('Please') ? 'error' : 'success'}`}>
+              <div className={`form-message ${message.includes('error') || message.includes('Please email') ? 'error' : 'success'}`}>
                 {message}
               </div>
             )}
@@ -411,7 +320,7 @@ function MembershipForm() {
                       onChange={handleChange}
                       required
                     />
-                    <span>Lifetime Membership - AED {membershipPrices['Lifetime']?.toLocaleString()}</span>
+                    <span>Lifetime Membership</span>
                   </label>
                   <label className="radio-label">
                     <input
@@ -422,7 +331,7 @@ function MembershipForm() {
                       onChange={handleChange}
                       required
                     />
-                    <span>Annual Membership - AED {membershipPrices['Annual']?.toLocaleString()}</span>
+                    <span>Annual Membership</span>
                   </label>
                 </div>
               </div>
@@ -581,70 +490,126 @@ function MembershipForm() {
               </div>
             </section>
 
-            {/* Policies & Agreements - Show after basic info is validated */}
-            {isBasicInfoValid && (
-              <section className="form-section">
-                <h3 className="section-title">Policies & Agreements</h3>
-                
-                <div className="checkbox-group">
-                  <label className="checkbox-label">
+            {/* Payment Details */}
+            <section className="form-section">
+              <h3 className="section-title">Payment Details</h3>
+              
+              <div className="form-group">
+                <label>Select Payment Method *</label>
+                <div className="radio-group">
+                  <label className="radio-label">
                     <input
-                      type="checkbox"
-                      name="confirmAccuracy"
-                      checked={formData.confirmAccuracy}
+                      type="radio"
+                      name="paymentMethod"
+                      value="Card"
+                      checked={formData.paymentMethod === 'Card'}
                       onChange={handleChange}
                       required
                     />
-                    <span>I confirm that all information provided is accurate and true. *</span>
+                    <span>Card</span>
                   </label>
-                  <label className="checkbox-label">
+                  <label className="radio-label">
                     <input
-                      type="checkbox"
-                      name="confirmNonRefundable"
-                      checked={formData.confirmNonRefundable}
+                      type="radio"
+                      name="paymentMethod"
+                      value="Bank Transfer"
+                      checked={formData.paymentMethod === 'Bank Transfer'}
                       onChange={handleChange}
                       required
                     />
-                    <span>I understand that membership fees are non-refundable. *</span>
+                    <span>Bank Transfer</span>
                   </label>
-                  <label className="checkbox-label">
+                  <label className="radio-label">
                     <input
-                      type="checkbox"
-                      name="acceptPolicies"
-                      checked={formData.acceptPolicies}
+                      type="radio"
+                      name="paymentMethod"
+                      value="Payment Link"
+                      checked={formData.paymentMethod === 'Payment Link'}
                       onChange={handleChange}
                       required
                     />
-                    <span>I accept the Wish Waves Club Policies and Membership Terms. *</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="agreeToCommunications"
-                      checked={formData.agreeToCommunications}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span>I agree to receive updates, notifications, and event communications. *</span>
+                    <span>Payment Link</span>
                   </label>
                 </div>
-              </section>
-            )}
-
-            {!isBasicInfoValid && (
-              <div className="form-message info">
-                Please fill in all required fields up to Emergency Contact to proceed with payment.
               </div>
-            )}
 
-            <button 
-              type="submit" 
-              className="submit-button" 
-              disabled={isSubmitting || !isBasicInfoValid || 
-                       !formData.confirmAccuracy || !formData.confirmNonRefundable || 
-                       !formData.acceptPolicies || !formData.agreeToCommunications}
-            >
-              {isSubmitting ? 'Redirecting to Payment Gateway...' : 'Proceed to Payment Gateway'}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="transactionId">Transaction ID / Reference Number *</label>
+                  <input
+                    type="text"
+                    id="transactionId"
+                    name="transactionId"
+                    value={formData.transactionId}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter transaction ID"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="paymentReceipt">Upload Payment Receipt *</label>
+                  <input
+                    type="file"
+                    id="paymentReceipt"
+                    name="paymentReceipt"
+                    onChange={handleChange}
+                    required
+                    accept="image/*,.pdf"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Policies & Agreements */}
+            <section className="form-section">
+              <h3 className="section-title">Policies & Agreements</h3>
+              
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="confirmAccuracy"
+                    checked={formData.confirmAccuracy}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>I confirm that all information provided is accurate and true. *</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="confirmNonRefundable"
+                    checked={formData.confirmNonRefundable}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>I understand that membership fees are non-refundable. *</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="acceptPolicies"
+                    checked={formData.acceptPolicies}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>I accept the Wish Waves Club Policies and Membership Terms. *</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="agreeToCommunications"
+                    checked={formData.agreeToCommunications}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span>I agree to receive updates, notifications, and event communications. *</span>
+                </label>
+              </div>
+            </section>
+
+            <button type="submit" className="submit-button" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </button>
           </form>
         </div>
@@ -654,3 +619,5 @@ function MembershipForm() {
 }
 
 export default MembershipForm
+
+

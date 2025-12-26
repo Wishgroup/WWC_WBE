@@ -321,15 +321,41 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
       formData, // Full form data for membership application
     } = req.body;
 
+    // Validate required fields
     if (!membershipType || !amount || !billingDetails || !formData) {
       return res.status(400).json({ 
         success: false,
-        error: 'Missing required information. Please fill all required fields.' 
+        error: 'Missing required information. Please fill all required fields.',
+        missing: {
+          membershipType: !membershipType,
+          amount: !amount,
+          billingDetails: !billingDetails,
+          formData: !formData,
+        }
       });
     }
 
-    // Generate unique order ID
-    const orderId = `WWC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Validate billing details
+    if (!billingDetails.name || !billingDetails.email || !billingDetails.phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required billing information (name, email, phone)',
+      });
+    }
+
+    // Validate amount
+    const paymentAmount = parseFloat(amount);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid payment amount',
+      });
+    }
+
+    // Generate unique order ID (CC Avenue format: alphanumeric, max 30 chars)
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substr(2, 9).toUpperCase();
+    const orderId = `WWC${timestamp}${randomStr}`.substring(0, 30); // Ensure max 30 chars
 
     // Note: We will NOT save data to database here
     // Data will be saved only after successful payment in the response handler
@@ -337,7 +363,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     // Create payment request (card details will be collected by CC Avenue)
     const paymentRequest = createPaymentRequest({
       orderId,
-      amount: parseFloat(amount),
+      amount: paymentAmount,
       currency: 'AED',
       billingName: billingDetails.name,
       billingEmail: billingDetails.email,
@@ -350,6 +376,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     });
 
     if (!paymentRequest.success) {
+      console.error('Payment request creation failed:', paymentRequest.error);
       return res.status(400).json({
         success: false,
         error: paymentRequest.error || 'Failed to create payment request',
@@ -410,25 +437,33 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
  */
 router.post('/ccavenue/response', async (req, res) => {
   try {
-    const { encResponse } = req.body;
+    // CC Avenue may send response via POST (form data) or GET (query params)
+    const encResponse = req.body.encResponse || req.body.encResp || req.query.encResponse || req.query.encResp;
 
     if (!encResponse) {
-      return res.status(400).json({ error: 'Payment response is required' });
+      console.error('CC Avenue response: Missing encrypted response');
+      return res.status(400).json({ 
+        success: false,
+        error: 'Payment response is required' 
+      });
     }
 
     // Verify and decrypt payment response
     const verification = verifyPaymentResponse(encResponse);
 
     if (!verification.success) {
+      console.error('CC Avenue response verification failed:', verification.error);
       return res.status(400).json({
         success: false,
-        error: verification.error,
+        error: verification.error || 'Failed to verify payment response',
       });
     }
 
     const responseData = verification.data;
     const orderId = responseData.order_id;
-    const orderStatus = responseData.order_status;
+    const orderStatus = responseData.order_status; // "Success", "Aborted", "Failure", "Invalid"
+    
+    console.log(`CC Avenue payment response received - Order ID: ${orderId}, Status: ${orderStatus}`);
 
     // Find payment session
     const paymentSessionsCollection = await getCollection('payment_sessions');

@@ -4,8 +4,7 @@
 
 1. Go to: **https://login.ccavenue.ae/jsp/merchant/merchantLogin.jsp**
 2. Login with:
-   - **Username:** `AHM_54196`
-   - **Password:** `Wish@2027Primf`
+   
 
 ## Step 2: Get API Credentials
 
