@@ -1,167 +1,239 @@
 /**
  * Authentication Routes
- * Auth0-based authentication with database sync
+ * Login, registration, and user management
  */
 
 import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
 import { getCollection } from '../database/mongodb-connection.js';
-import { authenticateAuth0, requireAuth0, extractAuth0User } from '../middleware/auth0.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
-import { syncAuth0User, getUserByAuth0Id } from '../services/UserSyncService.js';
 import { logAudit } from '../services/AuditService.js';
 
 const router = express.Router();
 
 /**
- * POST /api/auth/sync
- * Sync Auth0 user with database
- * Called after Auth0 authentication to ensure user exists in database
+ * POST /api/auth/register
+ * Register a new member
  */
-router.post('/sync', 
-  apiLimiter,
-  authenticateAuth0,
-  extractAuth0User,
-  requireAuth0,
-  async (req, res) => {
-    try {
-      if (!req.auth0User) {
-        return res.status(401).json({ error: 'Auth0 user information required' });
-      }
+router.post('/register', apiLimiter, async (req, res) => {
+  try {
+    const { email, password, fullName, membershipType } = req.body;
 
-      // Sync user with database
-      const user = await syncAuth0User(req.auth0User, req);
-
-      // Determine user type for response
-      const userType = req.auth0User.user_type || 'member';
-      const role = user.role || userType;
-
-      res.json({
-        success: true,
-        user: {
-          id: user._id || user.id,
-          email: user.email,
-          fullName: user.full_name || user.fullName || user.vendor_name,
-          role: role,
-          membershipType: user.membership_type || user.membershipType,
-          auth0_id: user.auth0_id,
-        },
-      });
-    } catch (error) {
-      console.error('User sync error:', error);
-      res.status(500).json({ error: 'Failed to sync user' });
+    if (!email || !password || !fullName) {
+      return res.status(400).json({ error: 'Email, password, and full name are required' });
     }
-  }
-);
 
-/**
- * GET /api/auth/me
- * Get current authenticated user from database
- * Requires Auth0 authentication
- */
-router.get('/me', 
-  authenticateAuth0,
-  extractAuth0User,
-  requireAuth0,
-  async (req, res) => {
-    try {
-      if (!req.auth0User || !req.auth0User.auth0_id) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-
-      const { auth0_id, user_type } = req.auth0User;
-      const userType = user_type || 'member';
-
-      // Get user from database
-      let user = await getUserByAuth0Id(auth0_id, userType);
-
-      // If user not found, sync them
-      if (!user) {
-        user = await syncAuth0User(req.auth0User, req);
-      }
-
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const role = user.role || userType;
-
-      res.json({
-        success: true,
-        user: {
-          id: user._id || user.id,
-          email: user.email,
-          fullName: user.full_name || user.fullName || user.vendor_name,
-          role: role,
-          membershipType: user.membership_type || user.membershipType,
-          auth0_id: user.auth0_id,
-        },
-      });
-    } catch (error) {
-      console.error('Get user error:', error);
-      res.status(500).json({ error: 'Failed to get user' });
+    // Check if user already exists
+    const membersCollection = await getCollection('members');
+    const existingUser = await membersCollection.findOne({ email: email.toLowerCase() });
+    
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
     }
-  }
-);
 
-/**
- * POST /api/auth/callback
- * Handle Auth0 callback (optional, for server-side flows)
- * For SPA, this is typically handled client-side
- */
-router.post('/callback', apiLimiter, (req, res) => {
-  // Auth0 callback is typically handled client-side for SPAs
-  // This endpoint can be used for additional server-side processing if needed
-  res.json({
-    success: true,
-    message: 'Auth0 callback received. Authentication handled client-side.',
-  });
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user with pending payment status
+    const newMember = {
+      email: email.toLowerCase(),
+      password_hash: passwordHash,
+      full_name: fullName,
+      membership_type: membershipType || 'annual',
+      membership_status: 'pending', // Will be activated after payment
+      payment_status: 'pending',
+      fraud_status: 'clean',
+      fraud_score: 0,
+      role: 'member',
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    const result = await membersCollection.insertOne(newMember);
+    const memberId = result.insertedId;
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: memberId.toString(), email: newMember.email, role: 'member' },
+      process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
+      { expiresIn: '7d' }
+    );
+
+    // Log audit
+    await logAudit({
+      userType: 'system',
+      action: 'member_registered',
+      resourceType: 'member',
+      resourceId: memberId,
+      details: { email: newMember.email },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: memberId.toString(),
+        email: newMember.email,
+        fullName: newMember.full_name,
+        role: 'member',
+        membershipType: newMember.membership_type,
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
 /**
- * POST /api/auth/logout
- * Logout endpoint (mainly for audit logging)
- * Actual logout is handled by Auth0 client-side
+ * POST /api/auth/login
+ * Login member, admin, or vendor
  */
-router.post('/logout',
-  apiLimiter,
-  authenticateAuth0,
-  extractAuth0User,
-  async (req, res) => {
-    try {
-      if (req.auth0User && req.auth0User.auth0_id) {
-        const { auth0_id, user_type } = req.auth0User;
-        const userType = user_type || 'member';
+router.post('/login', apiLimiter, async (req, res) => {
+  try {
+    const { email, password, userType = 'member' } = req.body;
 
-        // Get user for audit logging
-        const user = await getUserByAuth0Id(auth0_id, userType);
-
-        if (user) {
-          await logAudit({
-            userType: userType,
-            action: 'user_logout',
-            resourceType: userType,
-            resourceId: user._id || user.id,
-            details: { email: user.email },
-            ipAddress: req.ip,
-            userAgent: req.get('user-agent'),
-          });
-        }
-      }
-
-      res.json({
-        success: true,
-        message: 'Logout successful',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Don't fail logout even if audit logging fails
-      res.json({
-        success: true,
-        message: 'Logout successful',
-      });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
+
+    let user = null;
+    let role = 'member';
+
+    if (userType === 'admin') {
+      // Check admin users (if you have an admin_users collection)
+      const adminCollection = await getCollection('admin_users');
+      const admin = await adminCollection.findOne({ email: email.toLowerCase() });
+      if (admin) {
+        user = admin;
+        role = 'admin';
+      }
+    } else if (userType === 'vendor') {
+      // Check vendors
+      const vendorsCollection = await getCollection('vendors');
+      const vendor = await vendorsCollection.findOne({ email: email.toLowerCase() });
+      if (vendor) {
+        user = vendor;
+        role = 'vendor';
+      }
+    } else {
+      // Check members
+      const membersCollection = await getCollection('members');
+      const member = await membersCollection.findOne({ email: email.toLowerCase() });
+      if (member) {
+        user = member;
+        role = 'member';
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password
+    const passwordHash = user.password_hash || user.passwordHash;
+    if (!passwordHash) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user._id?.toString() || user.id?.toString(),
+        email: user.email,
+        role: role,
+      },
+      process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
+      { expiresIn: '7d' }
+    );
+
+    // Log audit
+    await logAudit({
+      userType: role,
+      action: 'user_login',
+      resourceType: userType,
+      resourceId: user._id || user.id,
+      details: { email: user.email },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id || user.id,
+        email: user.email,
+        fullName: user.full_name || user.fullName || user.vendor_name,
+        role: role,
+        membershipType: user.membership_type || user.membershipType,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
-);
+});
+
+/**
+ * GET /api/auth/me
+ * Get current authenticated user
+ */
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const { userId, role } = req.user;
+
+    let user = null;
+
+    if (role === 'admin') {
+      const adminCollection = await getCollection('admin_users');
+      const admin = await adminCollection.findOne({ _id: new ObjectId(userId) });
+      if (admin) {
+        user = admin;
+      }
+    } else if (role === 'vendor') {
+      const vendorsCollection = await getCollection('vendors');
+      const vendor = await vendorsCollection.findOne({ _id: new ObjectId(userId) });
+      if (vendor) {
+        user = vendor;
+      }
+    } else {
+      const membersCollection = await getCollection('members');
+      const member = await membersCollection.findOne({ _id: new ObjectId(userId) });
+      if (member) {
+        user = member;
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id || user.id,
+        email: user.email,
+        fullName: user.full_name || user.fullName || user.vendor_name,
+        role: role,
+        membershipType: user.membership_type || user.membershipType,
+      },
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to get user' });
+  }
+});
 
 export default router;
+

@@ -3,36 +3,14 @@
  * Centralized API calls to backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
-
-// Token getter function - set by AuthContext
-let tokenGetter = null;
-
-/**
- * Set token getter function (called from AuthContext)
- */
-export const setTokenGetter = (getter) => {
-  tokenGetter = getter;
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /**
  * Generic API request helper
  */
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  // Get token from getter if available, otherwise try localStorage (for backward compatibility)
-  let token = null;
-  if (tokenGetter) {
-    try {
-      token = await tokenGetter();
-    } catch (error) {
-      console.error('Error getting token:', error);
-    }
-  } else {
-    token = localStorage.getItem('token');
-  }
-  
+  const token = localStorage.getItem('token');
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -43,31 +21,35 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:23',message:'Making API request',data:{endpoint,method:options.method},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const response = await fetch(url, config);
-    const data = await response.json();
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:27',message:'API response received',data:{status:response.status,ok:response.ok,hasSuccess:!!data?.success,hasUser:!!data?.user,dataKeys:Object.keys(data||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-    // #endregion
-    
-    if (!response.ok) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:30',message:'API request failed',data:{status:response.status,error:data.error,message:data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,D'})}).catch(()=>{});
-      // #endregion
-      throw new Error(data.error || data.message || 'API request failed');
+    // Check if response is ok before trying to parse JSON
+    let data;
+    try {
+      const text = await response.text();
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      throw new Error(`Server returned invalid response. Status: ${response.status}`);
     }
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:35',message:'Returning API data',data:{hasSuccess:!!data?.success,hasUser:!!data?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-    // #endregion
+    if (!response.ok) {
+      const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
+      const error = new Error(errorMessage);
+      error.response = { status: response.status, data };
+      throw error;
+    }
+    
     return data;
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:38',message:'API request exception',data:{error:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+    // Handle network errors
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      const networkError = new Error('Network error: Could not connect to server. Please check if the backend is running and try again.');
+      networkError.isNetworkError = true;
+      throw networkError;
+    }
+    
+    // Re-throw other errors
     console.error('API request error:', error);
     throw error;
   }
@@ -213,28 +195,60 @@ export const nfcAPI = {
  * Authentication API
  */
 export const authAPI = {
-  /**
-   * Sync Auth0 user with backend database
-   */
-  syncUser: async () => {
-    return apiRequest('/api/auth/sync', {
+  register: (email, password, fullName, membershipType) => {
+    return apiRequest('/api/auth/register', {
       method: 'POST',
+      body: JSON.stringify({ email, password, fullName, membershipType }),
     });
   },
 
-  /**
-   * Get current authenticated user from backend
-   */
-  getCurrentUser: async () => {
-    return apiRequest('/api/auth/me');
+  login: (email, password, userType = 'member') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:185',message:'authAPI.login called',data:{email,userType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, userType }),
+    });
   },
 
-  /**
-   * Logout (for audit logging)
-   */
-  logout: async () => {
-    return apiRequest('/api/auth/logout', {
+  getCurrentUser: () => {
+    const token = localStorage.getItem('token');
+    return apiRequest('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  },
+};
+
+/**
+ * Payment API
+ */
+export const paymentAPI = {
+  createSession: (userId, membershipType) => {
+    return apiRequest('/api/payment/create-session', {
       method: 'POST',
+      body: JSON.stringify({ userId, membershipType }),
+    });
+  },
+
+  verifyPayment: (sessionId) => {
+    return apiRequest(`/api/payment/verify/${sessionId}`);
+  },
+
+  // CC Avenue Payment API
+  validateCard: (cardDetails) => {
+    return apiRequest('/api/payment/ccavenue/validate-card', {
+      method: 'POST',
+      body: JSON.stringify({ cardDetails }),
+    });
+  },
+
+  initiateCCAvenuePayment: (paymentData) => {
+    return apiRequest('/api/payment/ccavenue/initiate', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
     });
   },
 };

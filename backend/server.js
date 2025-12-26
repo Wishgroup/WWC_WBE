@@ -11,23 +11,11 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 import nfcRoutes from './routes/nfc.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
+import paymentRoutes from './routes/payment.js';
 import { logAudit } from './services/AuditService.js';
 
 // Load environment variables
 dotenv.config();
-
-// Validate Auth0 environment variables
-const auth0Domain = process.env.AUTH0_DOMAIN;
-const auth0Audience = process.env.AUTH0_AUDIENCE;
-
-if (!auth0Domain || !auth0Audience) {
-  console.warn('⚠️  Warning: AUTH0_DOMAIN and AUTH0_AUDIENCE not set. Auth0 authentication will not work.');
-  console.warn('   Set these environment variables to enable Auth0 authentication.');
-} else {
-  console.log('✅ Auth0 configuration loaded');
-  console.log(`   Domain: ${auth0Domain}`);
-  console.log(`   Audience: ${auth0Audience}`);
-}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,9 +23,14 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-Vendor-API-Key'],
 }));
+
+// Stripe webhook route needs raw body - register BEFORE JSON parser
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -66,6 +59,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/nfc', nfcRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Legacy email endpoint (for existing frontend)
 app.post('/api/send-email', async (req, res) => {
@@ -103,14 +97,6 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  // Handle Auth0 JWT errors
-  if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Invalid or missing authentication token',
-    });
-  }
-
   console.error('Unhandled error:', err);
   
   logAudit({
@@ -144,7 +130,6 @@ app.listen(PORT, () => {
 ║   ✅ Dynamic Offers Engine                                ║
 ║   ✅ NFC Validation Pipeline                              ║
 ║   ✅ Card Lifecycle Management                            ║
-║   ✅ Auth0 Authentication                                 ║
 ║                                                           ║
 ║   Server running on port ${PORT}                          ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}   ║

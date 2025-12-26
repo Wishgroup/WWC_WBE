@@ -1,14 +1,12 @@
 /**
  * Authentication Middleware
- * Legacy JWT support (deprecated - use Auth0 instead)
  */
 
 import jwt from 'jsonwebtoken';
 import { query } from '../database/connection.js';
 
 /**
- * Verify JWT token (Legacy - deprecated)
- * @deprecated Use Auth0 authentication instead
+ * Verify JWT token
  */
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
