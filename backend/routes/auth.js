@@ -227,11 +227,72 @@ router.get('/me', authenticateToken, async (req, res) => {
         fullName: user.full_name || user.fullName || user.vendor_name,
         role: role,
         membershipType: user.membership_type || user.membershipType,
+        profileIconStyle: user.profile_icon_style || user.profileIconStyle,
       },
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
+  }
+});
+
+/**
+ * PUT /api/auth/profile-icon
+ * Update user's profile icon style preference
+ */
+router.put('/profile-icon', authenticateToken, apiLimiter, async (req, res) => {
+  try {
+    const { userId, role } = req.user;
+    const { iconStyle } = req.body;
+
+    // Validate icon style
+    const validStyles = ['initials', 'circle', 'square', 'gradient'];
+    if (!iconStyle || !validStyles.includes(iconStyle)) {
+      return res.status(400).json({ error: 'Invalid icon style' });
+    }
+
+    let collection = null;
+    if (role === 'admin') {
+      collection = await getCollection('admin_users');
+    } else if (role === 'vendor') {
+      collection = await getCollection('vendors');
+    } else {
+      collection = await getCollection('members');
+    }
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          profile_icon_style: iconStyle,
+          updated_at: new Date()
+        } 
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Log audit
+    await logAudit({
+      userType: role,
+      action: 'profile_icon_updated',
+      resourceType: role,
+      resourceId: userId,
+      details: { iconStyle },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile icon style updated',
+      iconStyle,
+    });
+  } catch (error) {
+    console.error('Update profile icon error:', error);
+    res.status(500).json({ error: 'Failed to update profile icon' });
   }
 });
 

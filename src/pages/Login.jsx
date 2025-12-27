@@ -16,13 +16,9 @@ const Login = () => {
   const { login, user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
-  // Redirect if already authenticated (this will fire after login sets the user state)
+  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:20',message:'useEffect redirect triggered',data:{isAuthenticated,userRole:user.role,path:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      console.log('[DEBUG] useEffect redirect - authenticated:', { isAuthenticated, userRole: user.role });
-      // #endregion
       const role = user.role
       let targetPath = '/member/dashboard'
       if (role === 'admin') {
@@ -30,7 +26,6 @@ const Login = () => {
       } else if (role === 'vendor') {
         targetPath = '/vendor/dashboard'
       }
-      console.log('[DEBUG] useEffect navigating to:', targetPath);
       navigate(targetPath, { replace: true })
     }
   }, [isAuthenticated, user, navigate])
@@ -40,48 +35,17 @@ const Login = () => {
     setError('')
     setLoading(true)
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:33',message:'handleSubmit called',data:{email:formData.email,userType:formData.userType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    console.log('[DEBUG] handleSubmit called with:', { email: formData.email, userType: formData.userType });
-    // #endregion
-
     try {
       const result = await login(formData.email, formData.password, formData.userType)
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:40',message:'login result received',data:{success:result?.success,hasUser:!!result?.user,userRole:result?.user?.role,resultKeys:Object.keys(result||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-      console.log('[DEBUG] Login result:', result);
-      // #endregion
-      
       if (result && result.success) {
-        // Get role from result.user or use formData.userType as fallback
-        const role = result.user?.role || formData.userType
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:45',message:'Before navigate',data:{role,resultUser:result.user,willNavigate:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,C'})}).catch(()=>{});
-        console.log('[DEBUG] Role determined:', role);
-        // #endregion
-        
-        // Don't navigate here - let the useEffect handle it when state updates
-        // This ensures ProtectedRoute sees the updated auth state
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:52',message:'Login successful, waiting for useEffect redirect',data:{role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        console.log('[DEBUG] Login successful, useEffect will handle redirect for role:', role);
-        // #endregion
-        setLoading(false) // Stop loading, useEffect will redirect
+        setLoading(false)
       } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:58',message:'Login failed',data:{error:result?.error,success:result?.success},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        console.log('[DEBUG] Login failed:', result);
-        // #endregion
         setError(result?.error || 'Login failed')
         setLoading(false)
       }
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Login.jsx:63',message:'Exception caught',data:{error:err?.message,errorStack:err?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      console.error('[DEBUG] Login exception:', err);
-      // #endregion
+      console.error('Login exception:', err)
       setError('An error occurred. Please try again.')
       setLoading(false)
     }
@@ -90,63 +54,161 @@ const Login = () => {
   return (
     <div className="login-page">
       <Header />
-      <div className="login-container">
-        <div className="login-card">
-          <h1>Welcome Back</h1>
-          <p className="login-subtitle">Sign in to your account</p>
-
-          {error && <div className="error-message">{error}</div>}
-
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="form-group">
-              <label>Account Type</label>
-              <select
-                value={formData.userType}
-                onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
-                className="form-input"
-              >
-                <option value="member">Member</option>
-                <option value="vendor">Vendor</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="form-input"
-                required
-                placeholder="your@email.com"
+      <div className="login-wrapper">
+        <div className="login-container">
+          <div className="login-left">
+            <div className="login-image-wrapper">
+              <img 
+                src="/assets/Login/login.png" 
+                alt="Welcome to Wish Waves Club" 
+                className="login-image"
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="form-input"
-                required
-                placeholder="Enter your password"
-              />
+          <div className="login-right">
+            <div className="login-card">
+              <div className="login-card-header">
+                <h2>Sign In</h2>
+                <p>Enter your credentials to continue</p>
+              </div>
+
+              {error && (
+                <div className="error-alert">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M10 18.3333C14.6024 18.3333 18.3333 14.6024 18.3333 10C18.3333 5.39763 14.6024 1.66667 10 1.66667C5.39763 1.66667 1.66667 5.39763 1.66667 10C1.66667 14.6024 5.39763 18.3333 10 18.3333Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10 6.66667V10"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10 13.3333H10.0083"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="login-form">
+                <div className="form-group">
+                  <label htmlFor="userType">Account Type</label>
+                  <select
+                    id="userType"
+                    value={formData.userType}
+                    onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="member">Member</option>
+                    <option value="vendor">Vendor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <div className="input-wrapper">
+                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path
+                        d="M2.5 6.66667L9.0755 11.0504C9.63533 11.4236 10.3647 11.4236 10.9245 11.0504L17.5 6.66667M4.16667 15.8333H15.8333C16.7538 15.8333 17.5 15.0872 17.5 14.1667V5.83333C17.5 4.91286 16.7538 4.16667 15.8333 4.16667H4.16667C3.24619 4.16667 2.5 4.91286 2.5 5.83333V14.1667C2.5 15.0872 3.24619 15.8333 4.16667 15.8333Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="form-input"
+                      required
+                      placeholder="name@company.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <div className="input-wrapper">
+                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path
+                        d="M15.8333 9.16667H4.16667C3.24619 9.16667 2.5 9.91286 2.5 10.8333V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V10.8333C17.5 9.91286 16.7538 9.16667 15.8333 9.16667Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M5.83333 9.16667V5.83333C5.83333 4.72826 6.27232 3.66846 7.05372 2.88706C7.83512 2.10565 8.89493 1.66667 10 1.66667C11.1051 1.66667 12.1649 2.10565 12.9463 2.88706C13.7277 3.66846 14.1667 4.72826 14.1667 5.83333V9.16667"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="form-input"
+                      required
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-options">
+                  <label className="checkbox-label">
+                    <input type="checkbox" />
+                    <span>Remember me</span>
+                  </label>
+                  <Link to="#" className="forgot-link">Forgot password?</Link>
+                </div>
+
+                <button type="submit" className="login-button" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <svg className="spinner" width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="50" strokeDashoffset="25">
+                          <animate attributeName="stroke-dasharray" dur="1.5s" values="0 50;50 0;0 50" repeatCount="indefinite" />
+                        </circle>
+                      </svg>
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </button>
+              </form>
+
+              <div className="login-divider">
+                <span>Or</span>
+              </div>
+
+              <div className="login-footer">
+                <p>
+                  Don't have an account?{' '}
+                  <Link to="/register" className="signup-link">
+                    Sign up for free
+                  </Link>
+                </p>
+              </div>
             </div>
-
-            <button type="submit" className="login-button" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <div className="login-footer">
-            <p>
-              Don't have an account?{' '}
-              <Link to="/register" className="link">
-                Register here
-              </Link>
-            </p>
           </div>
         </div>
       </div>
@@ -156,4 +218,3 @@ const Login = () => {
 }
 
 export default Login
-

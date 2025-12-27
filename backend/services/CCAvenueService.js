@@ -10,73 +10,116 @@ dotenv.config();
 
 // CC Avenue Configuration
 const CCAVENUE_CONFIG = {
-  merchantId: process.env.CCAVENUE_MERCHANT_ID || '',
-  accessCode: process.env.CCAVENUE_ACCESS_CODE || '',
-  workingKey: process.env.CCAVENUE_WORKING_KEY || '',
+  merchantId: (process.env.CCAVENUE_MERCHANT_ID || '').trim(),
+  accessCode: (process.env.CCAVENUE_ACCESS_CODE || '').trim(),
+  workingKey: (process.env.CCAVENUE_WORKING_KEY || '').trim(),
   // Use test URL for development, live URL for production
   paymentUrl: process.env.CCAVENUE_PAYMENT_URL || 'https://test.ccavenue.com/transaction/transaction.do?command=initiateTransaction',
   redirectUrl: process.env.CCAVENUE_REDIRECT_URL || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/response`,
   cancelUrl: process.env.CCAVENUE_CANCEL_URL || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/join?canceled=true`,
 };
 
+// Validate configuration on module load
+if (!CCAVENUE_CONFIG.merchantId || !CCAVENUE_CONFIG.accessCode || !CCAVENUE_CONFIG.workingKey) {
+  console.warn('⚠️  CC Avenue credentials are not fully configured. Please check environment variables.');
+}
+
 /**
  * Encrypt data using CC Avenue's encryption algorithm
+ * CC Avenue requires AES-128-CBC with PKCS7 padding
  * @param {string} plainText - Plain text to encrypt
- * @param {string} key - Working key
- * @returns {string} Encrypted string
+ * @param {string} key - Working key (32 hex characters)
+ * @returns {string} Encrypted string (base64)
  */
 function encrypt(plainText, key) {
-  const keyBytes = Buffer.from(key);
-  const plainBytes = Buffer.from(plainText, 'utf8');
-  
-  // Pad the plain text to be a multiple of 8 bytes
-  const padding = 8 - (plainBytes.length % 8);
-  const paddedPlainText = Buffer.concat([
-    plainBytes,
-    Buffer.alloc(padding, padding)
-  ]);
-  
-  // Use AES-128-CBC encryption
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-128-cbc', keyBytes.slice(0, 16), iv);
-  
-  let encrypted = cipher.update(paddedPlainText);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  
-  // Prepend IV to encrypted data
-  const encryptedWithIv = Buffer.concat([iv, encrypted]);
-  
-  // Return base64 encoded string
-  return encryptedWithIv.toString('base64');
+  try {
+    if (!plainText || !key) {
+      throw new Error('Plain text and key are required for encryption');
+    }
+
+    // Convert working key to buffer (CC Avenue working key is 32 hex characters)
+    let keyBuffer;
+    if (key.length === 32 && /^[0-9A-Fa-f]+$/.test(key)) {
+      // Key is hex string, convert to buffer
+      keyBuffer = Buffer.from(key, 'hex');
+    } else {
+      // Key is plain string, use as-is
+      keyBuffer = Buffer.from(key, 'utf8');
+    }
+
+    // Use first 16 bytes for AES-128
+    const encryptionKey = keyBuffer.slice(0, 16);
+    
+    // Convert plain text to buffer
+    const plainBytes = Buffer.from(plainText, 'utf8');
+    
+    // Generate random IV (16 bytes for AES-128-CBC)
+    const iv = crypto.randomBytes(16);
+    
+    // Create cipher with AES-128-CBC
+    const cipher = crypto.createCipheriv('aes-128-cbc', encryptionKey, iv);
+    cipher.setAutoPadding(true); // Use PKCS7 padding automatically
+    
+    // Encrypt the data
+    let encrypted = cipher.update(plainBytes, 'utf8');
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    
+    // Prepend IV to encrypted data (CC Avenue expects IV + encrypted data)
+    const encryptedWithIv = Buffer.concat([iv, encrypted]);
+    
+    // Return base64 encoded string
+    return encryptedWithIv.toString('base64');
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw new Error(`Encryption failed: ${error.message}`);
+  }
 }
 
 /**
  * Decrypt data using CC Avenue's decryption algorithm
- * @param {string} encryptedText - Encrypted text
- * @param {string} key - Working key
+ * @param {string} encryptedText - Encrypted text (base64)
+ * @param {string} key - Working key (32 hex characters)
  * @returns {string} Decrypted string
  */
 function decrypt(encryptedText, key) {
   try {
-    const keyBytes = Buffer.from(key);
+    if (!encryptedText || !key) {
+      throw new Error('Encrypted text and key are required for decryption');
+    }
+
+    // Convert working key to buffer
+    let keyBuffer;
+    if (key.length === 32 && /^[0-9A-Fa-f]+$/.test(key)) {
+      // Key is hex string, convert to buffer
+      keyBuffer = Buffer.from(key, 'hex');
+    } else {
+      // Key is plain string, use as-is
+      keyBuffer = Buffer.from(key, 'utf8');
+    }
+
+    // Use first 16 bytes for AES-128
+    const decryptionKey = keyBuffer.slice(0, 16);
+    
+    // Decode base64 encrypted data
     const encryptedBytes = Buffer.from(encryptedText, 'base64');
     
     // Extract IV (first 16 bytes)
     const iv = encryptedBytes.slice(0, 16);
     const encrypted = encryptedBytes.slice(16);
     
-    // Decrypt using AES-128-CBC
-    const decipher = crypto.createDecipheriv('aes-128-cbc', keyBytes.slice(0, 16), iv);
+    // Create decipher with AES-128-CBC
+    const decipher = crypto.createDecipheriv('aes-128-cbc', decryptionKey, iv);
+    decipher.setAutoPadding(true); // Use PKCS7 padding automatically
     
+    // Decrypt the data
     let decrypted = decipher.update(encrypted);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     
-    // Remove padding
-    const padding = decrypted[decrypted.length - 1];
-    return decrypted.slice(0, decrypted.length - padding).toString('utf8');
+    // Return decrypted string
+    return decrypted.toString('utf8');
   } catch (error) {
     console.error('Decryption error:', error);
-    throw new Error('Failed to decrypt payment response');
+    throw new Error(`Failed to decrypt payment response: ${error.message}`);
   }
 }
 
@@ -132,53 +175,102 @@ export function validateCardDetails(cardDetails) {
  * @returns {Object} Payment request with encrypted data
  */
 export function createPaymentRequest(paymentData) {
-  const {
-    orderId,
-    amount,
-    currency = 'AED',
-    billingName,
-    billingEmail,
-    billingTel,
-    billingAddress,
-    billingCity,
-    billingState,
-    billingZip,
-    billingCountry = 'AE',
-  } = paymentData;
-  
-  // Prepare payment parameters (without card details - CC Avenue will collect them)
-  const paymentParams = {
-    merchant_id: CCAVENUE_CONFIG.merchantId,
-    order_id: orderId,
-    amount: amount.toFixed(2),
-    currency: currency,
-    redirect_url: CCAVENUE_CONFIG.redirectUrl,
-    cancel_url: CCAVENUE_CONFIG.cancelUrl,
-    billing_name: billingName,
-    billing_email: billingEmail,
-    billing_tel: billingTel,
-    billing_address: billingAddress,
-    billing_city: billingCity,
-    billing_state: billingState || '',
-    billing_zip: billingZip || '',
-    billing_country: billingCountry,
-  };
-  
-  // Convert to query string
-  const queryString = Object.entries(paymentParams)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-    .join('&');
-  
-  // Encrypt the data
-  const encryptedData = encrypt(queryString, CCAVENUE_CONFIG.workingKey);
-  
-  return {
-    success: true,
-    paymentUrl: CCAVENUE_CONFIG.paymentUrl,
-    encryptedData,
-    merchantId: CCAVENUE_CONFIG.merchantId,
-    accessCode: CCAVENUE_CONFIG.accessCode,
-  };
+  try {
+    // Validate configuration
+    if (!CCAVENUE_CONFIG.merchantId || !CCAVENUE_CONFIG.accessCode || !CCAVENUE_CONFIG.workingKey) {
+      return {
+        success: false,
+        error: 'CC Avenue credentials are not configured. Please check environment variables.',
+        errors: {
+          merchantId: !CCAVENUE_CONFIG.merchantId ? 'Missing' : 'OK',
+          accessCode: !CCAVENUE_CONFIG.accessCode ? 'Missing' : 'OK',
+          workingKey: !CCAVENUE_CONFIG.workingKey ? 'Missing' : 'OK',
+        },
+      };
+    }
+
+    const {
+      orderId,
+      amount,
+      currency = 'AED',
+      billingName,
+      billingEmail,
+      billingTel,
+      billingAddress,
+      billingCity,
+      billingState,
+      billingZip,
+      billingCountry = 'AE',
+    } = paymentData;
+
+    // Validate required fields
+    if (!orderId || !amount || !billingName || !billingEmail) {
+      return {
+        success: false,
+        error: 'Missing required payment parameters',
+      };
+    }
+
+    // Prepare payment parameters (CC Avenue required format)
+    // Note: Parameter names must match CC Avenue's expected format exactly
+    const paymentParams = {
+      merchant_id: CCAVENUE_CONFIG.merchantId,
+      order_id: orderId,
+      amount: parseFloat(amount).toFixed(2), // Ensure 2 decimal places
+      currency: currency.toUpperCase(), // Ensure uppercase
+      redirect_url: CCAVENUE_CONFIG.redirectUrl,
+      cancel_url: CCAVENUE_CONFIG.cancelUrl,
+      billing_name: billingName.trim(),
+      billing_email: billingEmail.trim().toLowerCase(),
+      billing_tel: billingTel.trim(),
+      billing_address: billingAddress.trim(),
+      billing_city: billingCity.trim(),
+      billing_state: (billingState || '').trim(),
+      billing_zip: (billingZip || '').trim(),
+      billing_country: billingCountry.toUpperCase(),
+    };
+
+    // Remove empty optional fields to avoid issues
+    Object.keys(paymentParams).forEach(key => {
+      if (paymentParams[key] === '' || paymentParams[key] === null || paymentParams[key] === undefined) {
+        delete paymentParams[key];
+      }
+    });
+
+    // Convert to query string (CC Avenue format)
+    // Important: Parameters must be in specific order and properly encoded
+    const queryString = Object.entries(paymentParams)
+      .map(([key, value]) => {
+        // CC Avenue expects URL encoding but some special characters need specific handling
+        const encodedValue = encodeURIComponent(String(value));
+        return `${key}=${encodedValue}`;
+      })
+      .join('&');
+
+    // Encrypt the data using working key
+    const encryptedData = encrypt(queryString, CCAVENUE_CONFIG.workingKey);
+
+    if (!encryptedData) {
+      return {
+        success: false,
+        error: 'Failed to encrypt payment data',
+      };
+    }
+
+    return {
+      success: true,
+      paymentUrl: CCAVENUE_CONFIG.paymentUrl,
+      encryptedData,
+      merchantId: CCAVENUE_CONFIG.merchantId,
+      accessCode: CCAVENUE_CONFIG.accessCode,
+    };
+  } catch (error) {
+    console.error('Error creating payment request:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create payment request',
+    };
+  }
 }
 
 /**
@@ -188,14 +280,44 @@ export function createPaymentRequest(paymentData) {
  */
 export function verifyPaymentResponse(encryptedResponse) {
   try {
+    if (!encryptedResponse) {
+      return {
+        success: false,
+        error: 'Encrypted response is required',
+      };
+    }
+
+    if (!CCAVENUE_CONFIG.workingKey) {
+      return {
+        success: false,
+        error: 'Working key is not configured',
+      };
+    }
+
+    // Decrypt the response
     const decryptedData = decrypt(encryptedResponse, CCAVENUE_CONFIG.workingKey);
     
+    if (!decryptedData) {
+      return {
+        success: false,
+        error: 'Failed to decrypt payment response',
+      };
+    }
+
     // Parse the decrypted data (it's in query string format)
     const params = new URLSearchParams(decryptedData);
     const response = {};
     
     for (const [key, value] of params.entries()) {
       response[key] = value;
+    }
+
+    // Validate required fields
+    if (!response.order_id || !response.order_status) {
+      return {
+        success: false,
+        error: 'Invalid payment response format',
+      };
     }
     
     return {
@@ -206,7 +328,7 @@ export function verifyPaymentResponse(encryptedResponse) {
     console.error('Payment response verification error:', error);
     return {
       success: false,
-      error: error.message,
+      error: error.message || 'Failed to verify payment response',
     };
   }
 }
