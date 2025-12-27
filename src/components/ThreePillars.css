@@ -19,6 +19,8 @@
   color: var(--teal-dark);
   margin-bottom: 16px;
   line-height: 1.2;
+  text-align: center;
+  width: 100%;
 }
 
 .section-subtitle {

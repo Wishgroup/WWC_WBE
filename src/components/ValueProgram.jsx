@@ -30,6 +30,15 @@ const ValueProgram = () => {
           <p className="value-program-note">
             Participation is always a choice — never a requirement.
           </p>
+          <div className="value-program-cta">
+            <button className="value-program-button">
+              <div className="value-button-filler"></div>
+              <div className="value-button-content">
+                <span className="value-button-text-1">View More</span>
+                <span className="value-button-text-2">View More</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </section>

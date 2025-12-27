@@ -34,7 +34,7 @@
   background: var(--gray-medium);
   color: var(--white);
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -393,7 +393,7 @@
   background: var(--teal-medium);
   color: var(--white);
   border: none;
-  border-radius: 6px;
+  border-radius: 50px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

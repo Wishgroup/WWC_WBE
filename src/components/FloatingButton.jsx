@@ -4,7 +4,7 @@ import './FloatingButton.css'
 
 const FloatingButton = () => {
   const navigate = useNavigate()
-  const [isVisible, setIsVisible] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,9 +13,8 @@ const FloatingButton = () => {
       const documentHeight = document.documentElement.scrollHeight
       const scrollBottom = documentHeight - (currentScrollY + windowHeight)
       
-      // Show button when user scrolls past 200px
-      // Hide when near the bottom (within 100px of footer) or at the top
-      const shouldShow = currentScrollY > 200 && scrollBottom > 100
+      // Always show button, but hide when very close to bottom (within 50px of footer)
+      const shouldShow = scrollBottom > 50
       
       setIsVisible(shouldShow)
     }

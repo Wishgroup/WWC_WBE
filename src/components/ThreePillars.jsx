@@ -25,7 +25,6 @@ const ThreePillars = () => {
       <div className="pillars-container">
         <div className={`section-header ${isSectionVisible ? 'fade-in-up' : 'animate-on-scroll'}`}>
           <h2 className="section-title">Our Three Pillars</h2>
-          <p className="section-subtitle">What We Stand For</p>
         </div>
 
         <div className="pillars-grid">

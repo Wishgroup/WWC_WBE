@@ -7,7 +7,6 @@ import Memberships from '../components/Memberships'
 import Features from '../components/Features'
 import ValueProgram from '../components/ValueProgram'
 import Footer from '../components/Footer'
-import FloatingButton from '../components/FloatingButton'
 import './Home.css'
 
 function Home() {
@@ -21,7 +20,6 @@ function Home() {
       <Features />
       <ValueProgram />
       <Footer />
-      <FloatingButton />
     </div>
   )
 }

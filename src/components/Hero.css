@@ -56,6 +56,7 @@
 .hero-text {
   max-width: 700px;
   color: var(--white);
+  margin-top: 120px;
 }
 
 .hero-title {
@@ -98,7 +99,7 @@
   padding: 16px 32px;
   font-size: 16px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 50px;
   transition: all 0.2s;
   border: none;
   cursor: pointer;
@@ -146,6 +147,10 @@
 
   .hero-subtitle {
     font-size: 18px;
+  }
+
+  .hero-text {
+    margin-top: 80px;
   }
 
   .hero-ctas {

@@ -1,6 +1,5 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import bgVideo from '../../WWC_WBE/10x/bg_video.mp4'
 import LiquidEther from './LiquidEther'
 import './Hero.css'
 
@@ -15,7 +14,7 @@ const Hero = () => {
         muted
         playsInline
       >
-        <source src={bgVideo} type="video/mp4" />
+        <source src="/assets/bg_video.mp4" type="video/mp4" />
       </video>
       <div className="hero-overlay"></div>
       <div className="hero-liquid-ether">
