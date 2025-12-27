@@ -563,30 +563,39 @@ router.post('/ccavenue/response', async (req, res) => {
         });
 
         if (!existingMember) {
+          // Build full name from firstName/lastName or use fullName
+          const fullName = formData.fullName || 
+            `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 
+            'Member';
+
           const memberData = {
-            full_name: formData.fullName,
+            full_name: fullName,
+            first_name: formData.firstName || '',
+            last_name: formData.lastName || '',
             email: formData.email.toLowerCase(),
-            mobile_number: formData.mobileNumber,
-            date_of_birth: formData.dateOfBirth,
-            nationality: formData.nationality,
+            mobile_number: formData.mobileNumber || formData.phoneNumber || '',
+            date_of_birth: formData.dateOfBirth || '',
+            nationality: formData.nationality || '',
             gender: formData.gender || '',
-            passport_id: formData.passportId,
+            passport_id: formData.passportId || formData.idNumber || '',
+            id_number: formData.idNumber || formData.passportId || '',
+            id_type: formData.idType || 'emirates_id',
             address: {
-              street: formData.street,
-              city: formData.city,
-              country: formData.country,
+              street: formData.street || formData.address || '',
+              city: formData.city || '',
+              country: formData.country || '',
             },
-            membership_type: formData.membershipType.toLowerCase(),
-            membership_status: 'active',
+            membership_type: (formData.membershipType || 'annual').toLowerCase(),
+            membership_status: 'active', // Set to active after payment
             payment_status: 'paid',
             payment_amount: parseFloat(responseData.amount),
             payment_currency: 'AED',
             payment_date: new Date(),
             payment_session_id: orderId,
             emergency_contact: {
-              name: formData.emergencyName,
-              relationship: formData.emergencyRelationship,
-              mobile: formData.emergencyMobile,
+              name: formData.emergencyName || '',
+              relationship: formData.emergencyRelationship || '',
+              mobile: formData.emergencyMobile || '',
             },
             // Professional Information
             occupation: formData.occupation || '',
@@ -600,7 +609,7 @@ router.post('/ccavenue/response', async (req, res) => {
             // Fraud status
             fraud_status: 'clean',
             fraud_score: 0,
-            role: 'member',
+            role: 'member', // Set role to 'member' after successful payment
             created_at: new Date(),
             updated_at: new Date(),
           };
@@ -608,22 +617,47 @@ router.post('/ccavenue/response', async (req, res) => {
           await membersCollection.insertOne(memberData);
           console.log('Member account created after successful payment:', orderId);
         } else {
-          // Update existing member
+          // Update existing member with payment and membership info
+          const updateData = {
+            full_name: formData.fullName || `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || existingMember.full_name,
+            mobile_number: formData.mobileNumber || formData.phoneNumber || existingMember.mobile_number,
+            address: {
+              street: formData.street || formData.address || existingMember.address?.street || '',
+              city: formData.city || existingMember.address?.city || '',
+              country: formData.country || existingMember.address?.country || '',
+            },
+            membership_type: formData.membershipType?.toLowerCase() || existingMember.membership_type,
+            membership_status: 'active', // Set to active after payment
+            payment_status: 'paid',
+            payment_amount: parseFloat(responseData.amount),
+            payment_currency: 'AED',
+            payment_date: new Date(),
+            payment_session_id: orderId,
+            role: 'member', // Ensure role is set to 'member' after payment
+            updated_at: new Date(),
+          };
+
+          // Add first_name and last_name if provided
+          if (formData.firstName) {
+            updateData.first_name = formData.firstName;
+          }
+          if (formData.lastName) {
+            updateData.last_name = formData.lastName;
+          }
+
+          // Add optional fields if provided
+          if (formData.idNumber || formData.passportId) {
+            updateData.id_number = formData.idNumber || formData.passportId;
+            updateData.id_type = formData.idType || 'emirates_id';
+          }
+
           await membersCollection.updateOne(
             { email: formData.email.toLowerCase() },
             {
-              $set: {
-                membership_status: 'active',
-                payment_status: 'paid',
-                payment_amount: parseFloat(responseData.amount),
-                payment_currency: 'AED',
-                payment_date: new Date(),
-                payment_session_id: orderId,
-                updated_at: new Date(),
-              }
+              $set: updateData,
             }
           );
-          console.log('Existing member updated after successful payment:', orderId);
+          console.log('Existing member updated after successful payment - Status: active, Role: member, Order ID:', orderId);
         }
       } catch (memberError) {
         console.error('Error creating member account:', memberError);

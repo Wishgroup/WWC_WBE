@@ -22,12 +22,43 @@ const PORT = process.env.PORT || 3001;
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+
+// CORS configuration - more permissive in development
+const corsOptions = {
+  origin: function (origin, callback) {
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // List of allowed origins for production
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      'http://localhost:5175',
+    ].filter(Boolean); // Remove undefined values
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-Vendor-API-Key'],
-}));
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 
 // Stripe webhook route needs raw body - register BEFORE JSON parser
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
@@ -44,6 +75,23 @@ app.use((req, res, next) => {
 
 // Global rate limiting
 app.use('/api', apiLimiter);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    service: 'Wish Waves Club Backend API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      payment: '/api/payment',
+      nfc: '/api/nfc',
+      admin: '/api/admin',
+    },
+    documentation: 'See /health for server status',
+  });
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

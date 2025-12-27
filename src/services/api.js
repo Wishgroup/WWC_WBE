@@ -227,6 +227,13 @@ export const authAPI = {
       body: JSON.stringify({ iconStyle }),
     });
   },
+
+  savePersonalInfo: (personalInfo) => {
+    return apiRequest('/api/auth/save-personal-info', {
+      method: 'POST',
+      body: JSON.stringify(personalInfo),
+    });
+  },
 };
 
 /**

@@ -34,6 +34,10 @@ const CreditCard = ({
             src={frontImage} 
             alt="Credit card front"
             className="credit-card-image"
+            onError={(e) => {
+              console.error('Failed to load front image:', frontImage);
+              e.target.style.display = 'none';
+            }}
           />
         </div>
 
@@ -43,6 +47,10 @@ const CreditCard = ({
             src={backImage} 
             alt="Credit card back"
             className="credit-card-image"
+            onError={(e) => {
+              console.error('Failed to load back image:', backImage);
+              e.target.style.display = 'none';
+            }}
           />
         </div>
       </div>
