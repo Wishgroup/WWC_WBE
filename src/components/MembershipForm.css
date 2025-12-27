@@ -240,6 +240,87 @@
   border-color: rgba(74, 154, 154, 0.3);
 }
 
+/* Form Divider */
+.form-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(74, 154, 154, 0.3), transparent);
+  margin: 40px 0;
+  border: none;
+}
+
+/* Terms Section */
+.terms-section {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(74, 154, 154, 0.2);
+  margin-top: 30px;
+}
+
+.terms-intro {
+  color: var(--teal-medium-dark);
+  font-size: 15px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* Payment Section */
+.payment-section {
+  background: linear-gradient(135deg, rgba(74, 154, 154, 0.1) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 2px solid rgba(74, 154, 154, 0.3);
+  margin-top: 30px;
+}
+
+.payment-summary {
+  margin-bottom: 30px;
+}
+
+.payment-details {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 77, 77, 0.1);
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(26, 77, 77, 0.1);
+}
+
+.payment-row:last-child {
+  border-bottom: none;
+  font-weight: 600;
+  font-size: 18px;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 2px solid rgba(74, 154, 154, 0.3);
+}
+
+.payment-row span:first-child {
+  color: var(--teal-medium-dark);
+  font-size: 15px;
+}
+
+.payment-value {
+  color: var(--teal-dark);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.payment-button {
+  margin-top: 20px;
+  font-size: 20px;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, var(--teal-medium-dark) 0%, var(--teal-medium) 100%);
+  box-shadow: 0 6px 20px rgba(26, 77, 77, 0.4);
+}
+
+.payment-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(26, 77, 77, 0.5);
+}
+
 @media (max-width: 768px) {
   .membership-form-wrapper {
     padding: 40px 25px;
@@ -261,6 +342,21 @@
 
   .form-section {
     padding: 20px;
+  }
+
+  .payment-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .payment-value {
+    font-size: 18px;
+  }
+
+  .payment-button {
+    font-size: 18px;
+    padding: 18px 32px;
   }
 }
 

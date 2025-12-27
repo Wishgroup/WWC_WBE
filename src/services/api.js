@@ -220,6 +220,13 @@ export const authAPI = {
       },
     });
   },
+
+  updateProfileIconStyle: (iconStyle) => {
+    return apiRequest('/api/auth/profile-icon', {
+      method: 'PUT',
+      body: JSON.stringify({ iconStyle }),
+    });
+  },
 };
 
 /**
