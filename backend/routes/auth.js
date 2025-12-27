@@ -20,7 +20,21 @@ const router = express.Router();
  */
 router.post('/register', apiLimiter, async (req, res) => {
   try {
-    const { email, password, fullName, membershipType } = req.body;
+    const { 
+      email, 
+      password, 
+      fullName, 
+      membershipType,
+      // Additional fields that might be provided
+      firstName,
+      lastName,
+      phoneNumber,
+      mobileNumber,
+      address,
+      country,
+      idNumber,
+      idType,
+    } = req.body;
 
     if (!email || !password || !fullName) {
       return res.status(400).json({ error: 'Email, password, and full name are required' });
@@ -37,11 +51,17 @@ router.post('/register', apiLimiter, async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user with pending payment status
+    // Build full name from firstName/lastName if provided, otherwise use fullName
+    const finalFullName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : 'Member');
+
+    // Create user with pending payment status - save ALL provided data
     const newMember = {
       email: email.toLowerCase(),
       password_hash: passwordHash,
-      full_name: fullName,
+      full_name: finalFullName,
+      first_name: firstName || '',
+      last_name: lastName || '',
+      mobile_number: phoneNumber || mobileNumber || '',
       membership_type: membershipType || 'annual',
       membership_status: 'pending', // Will be activated after payment
       payment_status: 'pending',
@@ -52,8 +72,38 @@ router.post('/register', apiLimiter, async (req, res) => {
       updated_at: new Date(),
     };
 
+    // Add address if provided
+    if (address || country) {
+      newMember.address = {
+        street: address || '',
+        country: country || '',
+      };
+    }
+
+    // Add ID information if provided
+    if (idNumber) {
+      newMember.id_number = idNumber;
+      newMember.id_type = idType || 'emirates_id';
+    }
+
     const result = await membersCollection.insertOne(newMember);
     const memberId = result.insertedId;
+    
+    console.log('✅ New member registered and saved to database:', {
+      id: memberId.toString(),
+      email: newMember.email,
+      fullName: newMember.full_name,
+      firstName: newMember.first_name || 'N/A',
+      lastName: newMember.last_name || 'N/A',
+      mobileNumber: newMember.mobile_number || 'N/A',
+      address: newMember.address || 'N/A',
+      idNumber: newMember.id_number || 'N/A',
+      idType: newMember.id_type || 'N/A',
+      membershipType: newMember.membership_type,
+      membershipStatus: newMember.membership_status,
+      paymentStatus: newMember.payment_status,
+      role: newMember.role,
+    });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -293,6 +343,107 @@ router.put('/profile-icon', authenticateToken, apiLimiter, async (req, res) => {
   } catch (error) {
     console.error('Update profile icon error:', error);
     res.status(500).json({ error: 'Failed to update profile icon' });
+  }
+});
+
+/**
+ * POST /api/auth/save-personal-info
+ * Save personal information during registration (before payment)
+ */
+router.post('/save-personal-info', apiLimiter, async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      address,
+      country,
+      phoneNumber,
+      email,
+      idNumber,
+      idType,
+    } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !address || !country || !phoneNumber || !email || !idNumber) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'All required fields must be provided' 
+      });
+    }
+
+    // Check if user already exists
+    const membersCollection = await getCollection('members');
+    const existingUser = await membersCollection.findOne({ 
+      email: email.toLowerCase() 
+    });
+
+    const fullName = `${firstName} ${lastName}`;
+    const memberData = {
+      full_name: fullName,
+      first_name: firstName,
+      last_name: lastName,
+      email: email.toLowerCase(),
+      mobile_number: phoneNumber,
+      address: {
+        street: address,
+        country: country,
+      },
+      id_number: idNumber,
+      id_type: idType, // 'emirates_id' or 'passport'
+      membership_status: 'pending',
+      payment_status: 'pending',
+      fraud_status: 'clean',
+      fraud_score: 0,
+      role: 'member',
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    if (existingUser) {
+      // Update existing user with personal information
+      await membersCollection.updateOne(
+        { email: email.toLowerCase() },
+        {
+          $set: {
+            ...memberData,
+            updated_at: new Date(),
+          }
+        }
+      );
+      
+      res.json({
+        success: true,
+        message: 'Personal information updated',
+        userId: existingUser._id.toString(),
+      });
+    } else {
+      // Create new member record with pending status
+      const result = await membersCollection.insertOne(memberData);
+      const memberId = result.insertedId;
+
+      // Log audit
+      await logAudit({
+        userType: 'system',
+        action: 'personal_info_saved',
+        resourceType: 'member',
+        resourceId: memberId,
+        details: { email: memberData.email },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Personal information saved',
+        userId: memberId.toString(),
+      });
+    }
+  } catch (error) {
+    console.error('Save personal info error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to save personal information' 
+    });
   }
 });
 
