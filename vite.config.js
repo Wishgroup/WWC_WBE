@@ -1,8 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { copyFileSync, existsSync } from 'fs'
+import { join } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Plugin to copy .htaccess after build
+    {
+      name: 'copy-htaccess',
+      closeBundle() {
+        const htaccessSource = join(process.cwd(), 'public', '.htaccess');
+        const htaccessDest = join(process.cwd(), 'dist', '.htaccess');
+        if (existsSync(htaccessSource)) {
+          copyFileSync(htaccessSource, htaccessDest);
+          console.log('✅ Copied .htaccess to dist/');
+        }
+      },
+    },
+  ],
   build: {
     rollupOptions: {
       output: {

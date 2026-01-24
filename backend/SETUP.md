@@ -5,7 +5,7 @@
 ### 1. Prerequisites
 
 - Node.js 18+ installed
-- PostgreSQL 12+ installed and running
+- MySQL 5.7+ or MariaDB 10.3+ (or access to MySQL database on tashjeel.ae)
 - npm or yarn package manager
 
 ### 2. Install Dependencies
@@ -17,20 +17,33 @@ npm install
 
 ### 3. Database Setup
 
-#### Create Database
+#### Option 1: Automatic Database Creation
+
+The migration script will automatically create the database if it doesn't exist and your MySQL user has CREATE DATABASE privileges. Just configure your MySQL credentials in `.env` and run:
 
 ```bash
-createdb wwc_db
+npm run migrate
 ```
 
-#### Create User (Optional)
+This will:
+1. Connect to your MySQL server
+2. Create the database if it doesn't exist (requires CREATE DATABASE privilege)
+3. Create all required tables
 
-```bash
-psql postgres
-CREATE USER wwc_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE wwc_db TO wwc_user;
-\q
-```
+**Note**: If you're using cPanel and your MySQL user doesn't have CREATE DATABASE privileges, you'll need to create the database manually through cPanel first (see Option 2 below).
+
+#### Option 2: Manual Database Creation in cPanel (tashjeel.ae)
+
+If you prefer to create the database manually:
+
+1. Log in to your cPanel account
+2. Navigate to **MySQL Databases** (or **Manage My Databases** in newer versions)
+3. Create a new database (e.g., `username_wwc_db`)
+4. Create a new MySQL user
+5. Add the user to the database with ALL PRIVILEGES
+6. Note down the database name, username, and password
+
+**Note**: cPanel typically prefixes database names with your username (e.g., `username_dbname`)
 
 #### Run Migration
 
@@ -38,11 +51,12 @@ GRANT ALL PRIVILEGES ON DATABASE wwc_db TO wwc_user;
 npm run migrate
 ```
 
-Or manually:
+This will create all required tables in your MySQL database (or use the existing database if created manually).
 
-```bash
-psql wwc_db < database/schema.sql
-```
+**For Remote MySQL Access**:
+- If connecting from a different server, you may need to add your server's IP to the "Remote MySQL" access list in cPanel
+- The host is usually `localhost` when connecting from the same server, or use the remote MySQL host provided by cPanel
+- Make sure your MySQL user has CREATE DATABASE privileges if using automatic creation
 
 ### 4. Environment Configuration
 
@@ -53,12 +67,12 @@ Create `.env` file in `backend/` directory:
 PORT=3001
 NODE_ENV=development
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=wwc_db
-DB_USER=wwc_user
-DB_PASSWORD=your_secure_password
+# MySQL Database (tashjeel.ae)
+DB_HOST=localhost  # or remote MySQL host from cPanel
+DB_PORT=3306
+DB_NAME=your_database_name  # e.g., username_wwc_db
+DB_USER=your_database_user  # e.g., username_dbuser
+DB_PASSWORD=your_database_password
 
 # Security
 JWT_SECRET=your_super_secret_jwt_key_min_32_chars

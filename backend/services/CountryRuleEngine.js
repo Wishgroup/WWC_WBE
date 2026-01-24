@@ -29,7 +29,7 @@ class CountryRuleEngine {
       const vendor = await query(
         `SELECT country, city, currency, allowed_membership_tiers, max_discount_percentage 
          FROM vendors 
-         WHERE id = $1 AND is_active = true`,
+         WHERE id = ? AND is_active = true`,
         [vendorId]
       );
 
@@ -148,7 +148,7 @@ class CountryRuleEngine {
     // Fetch from database
     const result = await query(
       `SELECT * FROM country_rules 
-       WHERE country_code = $1 AND is_active = true`,
+       WHERE country_code = ? AND is_active = true`,
       [countryCode]
     );
 
@@ -322,18 +322,16 @@ class CountryRuleEngine {
       `INSERT INTO country_rules 
        (country_code, country_name, allowed_membership_types, max_discount_percentage, 
         tax_rules, compliance_restrictions, blackout_periods, currency, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-       ON CONFLICT (country_code) 
-       DO UPDATE SET
-         country_name = EXCLUDED.country_name,
-         allowed_membership_types = EXCLUDED.allowed_membership_types,
-         max_discount_percentage = EXCLUDED.max_discount_percentage,
-         tax_rules = EXCLUDED.tax_rules,
-         compliance_restrictions = EXCLUDED.compliance_restrictions,
-         blackout_periods = EXCLUDED.blackout_periods,
-         currency = EXCLUDED.currency,
-         updated_at = CURRENT_TIMESTAMP
-       RETURNING *`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON DUPLICATE KEY UPDATE
+         country_name = VALUES(country_name),
+         allowed_membership_types = VALUES(allowed_membership_types),
+         max_discount_percentage = VALUES(max_discount_percentage),
+         tax_rules = VALUES(tax_rules),
+         compliance_restrictions = VALUES(compliance_restrictions),
+         blackout_periods = VALUES(blackout_periods),
+         currency = VALUES(currency),
+         updated_at = CURRENT_TIMESTAMP`,
       [
         countryCode,
         countryName,
@@ -349,7 +347,12 @@ class CountryRuleEngine {
     // Clear cache
     this.clearCache(countryCode);
 
-    return result.rows[0];
+    // Get the updated/inserted record
+    const updatedResult = await query(
+      `SELECT * FROM country_rules WHERE country_code = ?`,
+      [countryCode]
+    );
+    return updatedResult.rows[0];
   }
 }
 

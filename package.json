@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:cpanel": "node build-cpanel.js",
+    "build:prod": "vite build --mode production",
+    "setup:prod": "node build-production-env.js",
+    "deploy:build": "npm run build && node build-cpanel.js"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

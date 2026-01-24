@@ -107,31 +107,27 @@ class OfferEngine {
     let queryText = `
       SELECT * FROM offers 
       WHERE is_active = true 
-      AND (valid_from IS NULL OR valid_from <= $1)
-      AND (valid_until IS NULL OR valid_until >= $1)
+      AND (valid_from IS NULL OR valid_from <= ?)
+      AND (valid_until IS NULL OR valid_until >= ?)
     `;
-    const params = [currentTime];
-    let paramIndex = 2;
+    const params = [currentTime, currentTime];
 
     // Membership type filter
     if (membershipType) {
-      queryText += ` AND (membership_type IS NULL OR membership_type = $${paramIndex})`;
+      queryText += ` AND (membership_type IS NULL OR membership_type = ?)`;
       params.push(membershipType);
-      paramIndex++;
     }
 
     // Vendor category filter
     if (vendorCategory) {
-      queryText += ` AND (vendor_category IS NULL OR vendor_category = $${paramIndex})`;
+      queryText += ` AND (vendor_category IS NULL OR vendor_category = ?)`;
       params.push(vendorCategory);
-      paramIndex++;
     }
 
     // Country filter
     if (countryCode) {
-      queryText += ` AND (country_code IS NULL OR country_code = $${paramIndex})`;
+      queryText += ` AND (country_code IS NULL OR country_code = ?)`;
       params.push(countryCode);
-      paramIndex++;
     }
 
     queryText += ` ORDER BY priority DESC, id DESC`;
@@ -254,7 +250,7 @@ class OfferEngine {
     const result = await query(
       `SELECT offer_id, used_at 
        FROM offer_usage_logs 
-       WHERE member_id = $1 
+       WHERE member_id = ? 
        ORDER BY used_at DESC 
        LIMIT 100`,
       [memberId]
@@ -280,7 +276,7 @@ class OfferEngine {
     await query(
       `INSERT INTO offer_usage_logs 
        (offer_id, member_id, vendor_id, nfc_tap_log_id, discount_amount, original_amount, final_amount)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         offerId,
         memberId,

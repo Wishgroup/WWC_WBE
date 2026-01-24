@@ -24,7 +24,7 @@ class NFCCardService {
       // If this is primary, unset other primary cards
       if (isPrimary) {
         await query(
-          `UPDATE nfc_cards SET is_primary = false WHERE member_id = $1`,
+          `UPDATE nfc_cards SET is_primary = false WHERE member_id = ?`,
           [memberId]
         );
       }
@@ -33,20 +33,25 @@ class NFCCardService {
       const result = await query(
         `INSERT INTO nfc_cards 
          (member_id, card_uid, encrypted_token, is_primary, card_status)
-         VALUES ($1, $2, $3, $4, 'active')
-         RETURNING *`,
+         VALUES (?, ?, ?, ?, 'active')`,
         [memberId, cardUid, encryptedToken, isPrimary]
+      );
+
+      // Get the inserted card
+      const cardResult = await query(
+        `SELECT * FROM nfc_cards WHERE id = ?`,
+        [result.rows.insertId]
       );
 
       await logAudit({
         userType: 'system',
         action: 'card_issued',
         resourceType: 'nfc_card',
-        resourceId: result.rows[0].id,
+        resourceId: result.rows.insertId,
         details: { memberId, cardUid, isPrimary },
       });
 
-      return result.rows[0];
+      return cardResult.rows[0];
     } catch (error) {
       console.error('Card issuance error:', error);
       throw error;
@@ -58,28 +63,33 @@ class NFCCardService {
    */
   async blockCard(cardUid, reason = 'admin_block', adminUserId = null) {
     try {
-      const result = await query(
+      await query(
         `UPDATE nfc_cards 
          SET card_status = 'blocked', 
              blocked_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
-         WHERE card_uid = $1
-         RETURNING *`,
+         WHERE card_uid = ?`,
         [cardUid]
       );
 
-      if (result.rows.length > 0) {
+      // Get the updated card
+      const cardResult = await query(
+        `SELECT * FROM nfc_cards WHERE card_uid = ?`,
+        [cardUid]
+      );
+
+      if (cardResult.rows.length > 0) {
         await logAudit({
           userType: 'admin',
           userId: adminUserId,
           action: 'card_blocked',
           resourceType: 'nfc_card',
-          resourceId: result.rows[0].id,
+          resourceId: cardResult.rows[0].id,
           details: { cardUid, reason },
         });
       }
 
-      return result.rows[0];
+      return cardResult.rows[0] || null;
     } catch (error) {
       console.error('Card blocking error:', error);
       throw error;
@@ -92,28 +102,33 @@ class NFCCardService {
   async reportCard(cardUid, reportType, adminUserId = null) {
     // reportType: 'lost', 'stolen', 'damaged'
     try {
-      const result = await query(
+      await query(
         `UPDATE nfc_cards 
-         SET card_status = $1, 
+         SET card_status = ?, 
              blocked_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
-         WHERE card_uid = $2
-         RETURNING *`,
+         WHERE card_uid = ?`,
         [reportType, cardUid]
       );
 
-      if (result.rows.length > 0) {
+      // Get the updated card
+      const cardResult = await query(
+        `SELECT * FROM nfc_cards WHERE card_uid = ?`,
+        [cardUid]
+      );
+
+      if (cardResult.rows.length > 0) {
         await logAudit({
           userType: 'admin',
           userId: adminUserId,
           action: `card_${reportType}`,
           resourceType: 'nfc_card',
-          resourceId: result.rows[0].id,
+          resourceId: cardResult.rows[0].id,
           details: { cardUid, reportType },
         });
       }
 
-      return result.rows[0];
+      return cardResult.rows[0] || null;
     } catch (error) {
       console.error('Card reporting error:', error);
       throw error;
@@ -125,36 +140,35 @@ class NFCCardService {
    */
   async reissueCard(oldCardUid, newCardUid, adminUserId = null) {
     try {
-      return await transaction(async (client) => {
+      return await transaction(async (connection) => {
         // Get old card data
-        const oldCard = await client.query(
-          `SELECT * FROM nfc_cards WHERE card_uid = $1`,
+        const [oldCardRows] = await connection.execute(
+          `SELECT * FROM nfc_cards WHERE card_uid = ?`,
           [oldCardUid]
         );
 
-        if (oldCard.rows.length === 0) {
+        if (oldCardRows.length === 0) {
           throw new Error('Old card not found');
         }
 
-        const oldCardData = oldCard.rows[0];
+        const oldCardData = oldCardRows[0];
         const memberId = oldCardData.member_id;
 
         // Blacklist old UID
-        await client.query(
+        await connection.execute(
           `UPDATE nfc_cards 
            SET card_status = 'blacklisted',
                updated_at = CURRENT_TIMESTAMP
-           WHERE card_uid = $1`,
+           WHERE card_uid = ?`,
           [oldCardUid]
         );
 
         // Issue new card with old card's member_id
         const encryptedToken = this.encryptToken(newCardUid, memberId);
-        const newCard = await client.query(
+        const [insertResult] = await connection.execute(
           `INSERT INTO nfc_cards 
            (member_id, card_uid, encrypted_token, is_primary, card_status, previous_uid)
-           VALUES ($1, $2, $3, $4, 'active', $5)
-           RETURNING *`,
+           VALUES (?, ?, ?, ?, 'active', ?)`,
           [
             memberId,
             newCardUid,
@@ -164,12 +178,18 @@ class NFCCardService {
           ]
         );
 
+        // Get the new card
+        const [newCardRows] = await connection.execute(
+          `SELECT * FROM nfc_cards WHERE id = ?`,
+          [insertResult.insertId]
+        );
+
         await logAudit({
           userType: 'admin',
           userId: adminUserId,
           action: 'card_reissued',
           resourceType: 'nfc_card',
-          resourceId: newCard.rows[0].id,
+          resourceId: insertResult.insertId,
           details: {
             oldCardUid,
             newCardUid,
@@ -177,7 +197,7 @@ class NFCCardService {
           },
         });
 
-        return newCard.rows[0];
+        return newCardRows[0];
       });
     } catch (error) {
       console.error('Card reissuance error:', error);
@@ -190,28 +210,33 @@ class NFCCardService {
    */
   async unblockCard(cardUid, adminUserId = null) {
     try {
-      const result = await query(
+      await query(
         `UPDATE nfc_cards 
          SET card_status = 'active',
              blocked_at = NULL,
              updated_at = CURRENT_TIMESTAMP
-         WHERE card_uid = $1
-         RETURNING *`,
+         WHERE card_uid = ?`,
         [cardUid]
       );
 
-      if (result.rows.length > 0) {
+      // Get the updated card
+      const cardResult = await query(
+        `SELECT * FROM nfc_cards WHERE card_uid = ?`,
+        [cardUid]
+      );
+
+      if (cardResult.rows.length > 0) {
         await logAudit({
           userType: 'admin',
           userId: adminUserId,
           action: 'card_unblocked',
           resourceType: 'nfc_card',
-          resourceId: result.rows[0].id,
+          resourceId: cardResult.rows[0].id,
           details: { cardUid },
         });
       }
 
-      return result.rows[0];
+      return cardResult.rows[0] || null;
     } catch (error) {
       console.error('Card unblocking error:', error);
       throw error;
@@ -223,7 +248,7 @@ class NFCCardService {
    */
   async getMemberCards(memberId) {
     const result = await query(
-      `SELECT * FROM nfc_cards WHERE member_id = $1 ORDER BY is_primary DESC, issued_at DESC`,
+      `SELECT * FROM nfc_cards WHERE member_id = ? ORDER BY is_primary DESC, issued_at DESC`,
       [memberId]
     );
 

@@ -1,330 +1,296 @@
-# cPanel Deployment Guide for Wish Waves Club
+# cPanel Deployment Guide
 
-This guide will walk you through deploying your Wish Waves Club website to a cPanel hosting environment.
+Complete guide for deploying Wish Waves Club to cPanel hosting (tashjeel.ae).
 
 ## Prerequisites
 
-- cPanel hosting account with access credentials
-- FTP/SFTP credentials (or File Manager access)
-- Domain name configured and pointing to your hosting
-- All files built and ready in the `dist` folder
+- cPanel account with Node.js support
+- MySQL database access
+- FTP/SFTP access or cPanel File Manager
+- Domain name configured
 
----
+## Quick Start
 
-## Step 1: Prepare Your Files
-
-### 1.1 Build Your Project (if not already done)
-
-If you need to rebuild your project:
+### 1. Build for Production
 
 ```bash
-# Navigate to project root
-cd /Users/asan/WWC_web
-
-# Install dependencies (if needed)
-npm install
-
-# Build the project
-npm run build
+npm run build:cpanel
 ```
 
-This will create/update the `dist` folder with all production-ready files.
+This will create a `cpanel-build/` directory with:
+- `public_html/` - Frontend files ready to upload
+- `backend/` - Backend files ready to upload
+- `DEPLOYMENT_INSTRUCTIONS.md` - Detailed deployment steps
 
-### 1.2 Verify Files
+### 2. Upload Files
 
-Make sure your `dist` folder contains:
-- `index.html` - Main React app
-- `register.html` - Coming soon page
-- `.htaccess` - Apache configuration
-- `assets/` folder - All static assets (CSS, JS, images, videos)
-- `_redirects` - Netlify redirects (optional, not needed for cPanel)
+#### Frontend (public_html)
+1. Connect via FTP/SFTP or use cPanel File Manager
+2. Navigate to `public_html` directory
+3. Upload all files from `cpanel-build/public_html/`
+4. Ensure `.htaccess` is uploaded (may be hidden)
 
----
+#### Backend
+1. Create a `backend` directory in your home directory: `/home/username/backend`
+2. Upload all files from `cpanel-build/backend/`
+3. Or use cPanel Node.js App feature (recommended)
 
-## Step 2: Access cPanel
+### 3. Set Up Node.js Application
 
-### 2.1 Login to cPanel
+#### Using cPanel Node.js App (Recommended)
 
-1. Go to your hosting provider's cPanel login URL (usually `https://yourdomain.com/cpanel` or provided by your host)
-2. Enter your username and password
-3. Click "Log in"
+1. In cPanel, go to **Node.js** or **Setup Node.js App**
+2. Click **Create Application**
+3. Configure:
+   - **Node.js version**: 18.x or higher
+   - **Application mode**: Production
+   - **Application root**: `/home/username/backend`
+   - **Application URL**: `/api` (or use a subdomain like `api.yourdomain.com`)
+   - **Application startup file**: `server.js`
+4. Click **Create**
 
-### 2.2 Navigate to File Manager
+5. In the application settings:
+   - Click **Run NPM Install**
+   - Add environment variables (see Environment Variables section)
+   - Click **Start App**
 
-1. In cPanel, find the **"File Manager"** icon (usually under "Files" section)
-2. Click on it to open the File Manager
+#### Using SSH (Alternative)
 
----
+If you have SSH access:
 
-## Step 3: Upload Files
-
-### Option A: Using File Manager (Recommended for beginners)
-
-1. **Navigate to public_html**
-   - In File Manager, navigate to `public_html` (this is your website's root directory)
-   - If you have a subdomain or addon domain, navigate to that domain's folder instead
-
-2. **Backup existing files (if any)**
-   - If you have existing files, create a backup folder:
-     - Right-click in File Manager → "Create Folder" → Name it `backup_old`
-     - Move existing files to this backup folder
-
-3. **Upload files**
-   - Click "Upload" button at the top of File Manager
-   - Select all files from your `dist` folder:
-     - `index.html`
-     - `register.html`
-     - `.htaccess`
-     - `assets/` folder (upload the entire folder)
-   - Wait for upload to complete
-
-4. **Verify .htaccess is uploaded**
-   - Make sure `.htaccess` file is visible (you may need to enable "Show Hidden Files" in File Manager settings)
-
-### Option B: Using FTP/SFTP Client (Faster for large files)
-
-1. **Get FTP credentials**
-   - In cPanel, go to "FTP Accounts" or "FTP Configuration"
-   - Note your FTP host, username, and password
-
-2. **Connect with FTP client**
-   - Use FileZilla, Cyberduck, or any FTP client
-   - Connect using:
-     - **Host:** `ftp.yourdomain.com` or your server IP
-     - **Username:** Your FTP username
-     - **Password:** Your FTP password
-     - **Port:** 21 (FTP) or 22 (SFTP)
-
-3. **Upload files**
-   - Navigate to `public_html` on the server
-   - Upload all contents from your `dist` folder
-   - Make sure to upload `.htaccess` file (it may be hidden, enable "Show hidden files")
-
----
-
-## Step 4: Configure File Permissions
-
-1. **Set correct permissions**
-   - In File Manager, select all files and folders
-   - Right-click → "Change Permissions"
-   - Set permissions:
-     - **Files:** `644`
-     - **Folders:** `755`
-     - **.htaccess:** `644`
-
-2. **Verify .htaccess is readable**
-   - Make sure `.htaccess` has read permissions (644)
-
----
-
-## Step 5: Test Your Deployment
-
-### 5.1 Test Main Website
-
-1. Open your browser
-2. Visit `https://www.wishwavesclub.com`
-3. Verify the homepage loads correctly
-4. Test navigation and functionality
-
-### 5.2 Test Register Page
-
-1. Visit `https://www.wishwavesclub.com/register`
-2. Verify:
-   - Video background plays
-   - "Coming Soon" message displays
-   - Logo appears
-   - Page is responsive on mobile
-
-### 5.3 Test QR Code
-
-1. Scan your QR code
-2. Verify it redirects to `/register` page
-3. Confirm video and content load properly
-
----
-
-## Step 6: SSL Certificate (HTTPS)
-
-### 6.1 Enable SSL
-
-1. In cPanel, go to **"SSL/TLS"** or **"Let's Encrypt SSL"**
-2. Install SSL certificate for your domain
-3. Force HTTPS redirect (optional but recommended)
-
-### 6.2 Force HTTPS (Optional)
-
-Add to your `.htaccess` file (if not already present):
-
-```apache
-# Force HTTPS
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTPS} off
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-</IfModule>
+```bash
+cd ~/backend
+npm install --production
+npm run migrate
+pm2 start server.js --name wwc-backend
+pm2 save
 ```
 
----
+### 4. Configure Database
 
-## Step 7: Domain Configuration
+1. In cPanel, go to **MySQL Databases**
+2. Create database (if not exists):
+   - Database name: `username_wwc_db` (or your preferred name)
+3. Create MySQL user (if not exists)
+4. Add user to database with ALL PRIVILEGES
+5. Note down: database name, username, password
 
-### 7.1 Verify Domain Settings
+### 5. Run Database Migration
 
-1. In cPanel, go to **"Domains"** or **"Addon Domains"**
-2. Verify your domain is properly configured
-3. Check DNS settings if domain isn't resolving
+#### Option A: Via cPanel Node.js App Terminal
 
-### 7.2 DNS Settings (if needed)
+1. In Node.js app settings, click **Terminal**
+2. Run:
+```bash
+cd ~/backend
+npm run migrate
+```
 
-If your domain is registered elsewhere, point DNS to:
-- **A Record:** Your server IP address
-- **CNAME (www):** `yourdomain.com` or server IP
+#### Option B: Via SSH
 
----
+```bash
+cd ~/backend
+npm run migrate
+```
+
+### 6. Configure Environment Variables
+
+In cPanel Node.js App settings, add these environment variables:
+
+```env
+NODE_ENV=production
+PORT=3001
+
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+
+# Security (IMPORTANT: Generate secure values!)
+JWT_SECRET=your_super_secret_jwt_key_min_32_chars
+NFC_ENCRYPTION_KEY=your_nfc_encryption_key_32_bytes_min
+NFC_TOKEN_SECRET=your_nfc_token_secret
+ADMIN_API_KEY=your_admin_api_key_secure_random
+
+# Frontend URL
+FRONTEND_URL=https://yourdomain.com
+
+# Payment Gateway (CC Avenue)
+CCAVENUE_MERCHANT_ID=your_merchant_id
+CCAVENUE_ACCESS_CODE=your_access_code
+CCAVENUE_WORKING_KEY=your_working_key
+```
+
+**Generate secure keys:**
+```bash
+# JWT Secret (32+ characters)
+openssl rand -base64 32
+
+# NFC Encryption Key (32 bytes)
+openssl rand -hex 16
+
+# Admin API Key
+openssl rand -base64 24
+```
+
+### 7. Configure Frontend API URL
+
+The frontend needs to know where the backend API is located.
+
+#### Option A: Environment Variable (Recommended)
+
+1. In cPanel Node.js App, add:
+   ```
+   VITE_API_URL=https://yourdomain.com/api
+   ```
+2. Rebuild frontend with:
+   ```bash
+   VITE_API_URL=https://yourdomain.com/api npm run build
+   ```
+3. Upload new build to `public_html`
+
+#### Option B: Update Built Files
+
+After building, search and replace in `public_html/assets/*.js`:
+- Find: `http://localhost:3001`
+- Replace: `https://yourdomain.com/api`
+
+### 8. Configure .htaccess
+
+The `.htaccess` file should already be in `public_html`. It handles:
+- API routing to Node.js backend
+- Frontend SPA routing
+- Security headers
+- Caching
+
+Verify it's uploaded correctly.
+
+### 9. Test Deployment
+
+1. **Frontend**: Visit `https://yourdomain.com`
+2. **Backend Health**: Visit `https://yourdomain.com/api/health`
+3. **API Test**: Try logging in or registering
+
+### 10. Set Up SSL Certificate
+
+1. In cPanel, go to **SSL/TLS Status**
+2. Install Let's Encrypt certificate (free)
+3. Force HTTPS redirect in `.htaccess` if needed
+
+## File Structure on Server
+
+```
+/home/username/
+├── public_html/              # Frontend files
+│   ├── index.html
+│   ├── assets/
+│   ├── .htaccess
+│   └── ...
+└── backend/                  # Backend files
+    ├── server.js
+    ├── package.json
+    ├── .env
+    ├── routes/
+    ├── services/
+    └── ...
+```
 
 ## Troubleshooting
 
-### Issue: 404 Error on /register
+### Backend Not Accessible
 
-**Solution:**
-- Verify `.htaccess` file is uploaded and has correct permissions (644)
-- Check that `mod_rewrite` is enabled (contact hosting support if needed)
-- Verify `register.html` exists in the root directory
+1. **Check Node.js App Status**
+   - In cPanel Node.js App, verify app is running
+   - Check logs for errors
 
-### Issue: Video Not Playing
+2. **Check Port Configuration**
+   - Default port is 3001
+   - Verify port in Node.js app settings
+   - Check if port is open in firewall
 
-**Solution:**
-- Check video file path: `/assets/bg_video-DXQdEV7Y.mp4`
-- Verify video file uploaded correctly
-- Check file permissions (should be 644)
-- Clear browser cache
+3. **Check .htaccess**
+   - Verify proxy rules are correct
+   - Test: `https://yourdomain.com/api/health`
 
-### Issue: CSS/JS Not Loading
+### Frontend Routing Issues
 
-**Solution:**
-- Verify `assets/` folder uploaded completely
-- Check file paths in browser console (F12)
-- Ensure files have correct permissions (644)
-- Clear browser cache
+1. **Check .htaccess**
+   - Ensure mod_rewrite is enabled
+   - Verify rewrite rules are correct
 
-### Issue: .htaccess Not Working
+2. **Check File Permissions**
+   - Files: 644
+   - Directories: 755
+   - `.htaccess`: 644
 
-**Solution:**
-- Verify `.htaccess` file exists in root directory
-- Check file permissions (644)
-- Ensure `mod_rewrite` is enabled (contact hosting support)
-- Check for syntax errors in `.htaccess`
+### Database Connection Errors
 
-### Issue: White Screen or Errors
+1. **Verify Credentials**
+   - Check `.env` file or Node.js app environment variables
+   - Test connection manually
 
-**Solution:**
-- Check browser console for errors (F12)
-- Verify all files uploaded correctly
-- Check file permissions
-- Review server error logs in cPanel
+2. **Check Database Exists**
+   - Verify in cPanel MySQL Databases
+   - Run migration if tables don't exist
 
----
+3. **Check User Permissions**
+   - User must have ALL PRIVILEGES on database
+   - User must have CREATE DATABASE privilege (for auto-creation)
 
-## File Structure After Deployment
+### CORS Errors
 
-Your `public_html` (or domain root) should look like:
+1. **Update CORS Settings**
+   - In `backend/server.js`, update `FRONTEND_URL`
+   - Add your domain to allowed origins
 
-```
-public_html/
-├── .htaccess
-├── index.html
-├── register.html
-├── assets/
-│   ├── bg_video-DXQdEV7Y.mp4
-│   ├── index-B_-SF6os.css
-│   ├── index-DLhxSbFK.js
-│   ├── logo-Dbqisz3D.png
-│   └── 3d/
-│       └── Images/
-└── landing_page/
-    └── events.png
-```
+2. **Check Environment Variables**
+   - `FRONTEND_URL` should be your production domain
 
----
+## Security Checklist
 
-## Updating Your Site
+- [ ] Changed all default passwords and secrets
+- [ ] Set `NODE_ENV=production`
+- [ ] Configured proper CORS settings
+- [ ] Set up SSL certificate (HTTPS)
+- [ ] Protected `.env` file (not in public_html)
+- [ ] Configured firewall rules
+- [ ] Disabled directory browsing
+- [ ] Set up regular backups
+- [ ] Configured rate limiting
+- [ ] Set up monitoring/logging
 
-### To Update Files:
+## Maintenance
 
-1. **Rebuild locally:**
-   ```bash
-   npm run build
-   ```
+### Updating the Application
 
-2. **Upload new files:**
-   - Use File Manager or FTP to upload updated files
-   - Replace existing files in `public_html`
-   - Keep `.htaccess` file (don't overwrite unless you've modified it)
+1. Build new version: `npm run build:cpanel`
+2. Upload new files to server
+3. In Node.js app, run: `npm install` (if dependencies changed)
+4. Restart Node.js app
 
-3. **Clear cache:**
-   - Clear browser cache
-   - Consider adding cache-busting to your build process
+### Database Backups
 
----
+1. In cPanel, go to **Backup**
+2. Download MySQL database backup regularly
+3. Or use **phpMyAdmin** to export database
 
-## Additional cPanel Features
+### Logs
 
-### Enable Compression (Optional)
+- **Backend logs**: Check in cPanel Node.js App → Logs
+- **Error logs**: Check in cPanel → Error Log
+- **Access logs**: Check in cPanel → Raw Access Logs
 
-If not already in `.htaccess`, you can enable compression in cPanel:
-1. Go to **"Optimize Website"**
-2. Enable compression for your domain
+## Support
 
-### Error Logs
+For issues specific to:
+- **cPanel**: Contact your hosting provider (tashjeel.ae)
+- **Application**: Check logs and error messages
+- **Database**: Verify credentials and permissions
 
-To view errors:
-1. In cPanel, go to **"Errors"** or **"Error Log"**
-2. Review recent errors for troubleshooting
+## Additional Resources
 
-### Backup
-
-Before making changes:
-1. In cPanel, go to **"Backup"**
-2. Create a full backup or download files
-3. Keep backups before major updates
-
----
-
-## Support Contacts
-
-- **Hosting Support:** Contact your hosting provider for cPanel-specific issues
-- **Domain Registrar:** Contact for DNS issues
-- **Technical Issues:** Check error logs in cPanel
-
----
-
-## Quick Checklist
-
-- [ ] Files built and ready in `dist` folder
-- [ ] All files uploaded to `public_html`
-- [ ] `.htaccess` file uploaded and has correct permissions (644)
-- [ ] File permissions set correctly (644 for files, 755 for folders)
-- [ ] SSL certificate installed
-- [ ] Main website (`/`) loads correctly
-- [ ] Register page (`/register`) loads correctly
-- [ ] Video plays on register page
-- [ ] QR code redirects correctly
-- [ ] Mobile responsive design works
-- [ ] All assets (CSS, JS, images) load correctly
-
----
-
-## Notes
-
-- Keep your `.htaccess` file safe - it contains important routing rules
-- Always backup before making changes
-- Test thoroughly after deployment
-- Monitor error logs for any issues
-- Update files by rebuilding and re-uploading
-
----
-
-**Deployment Date:** _______________
-**Deployed By:** _______________
-**Domain:** https://www.wishwavesclub.com
-
+- [cPanel Node.js Documentation](https://docs.cpanel.net/cpanel/software/nodejs-applications/)
+- [MySQL Database Setup](https://docs.cpanel.net/cpanel/databases/mysql-databases/)
+- See `DEPLOYMENT_INSTRUCTIONS.md` in build folder for more details

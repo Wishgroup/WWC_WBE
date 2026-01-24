@@ -191,7 +191,7 @@ class FraudDetectionEngine {
     const result = await query(
       `SELECT card_status, expiry_date, blocked_at 
        FROM nfc_cards 
-       WHERE card_uid = $1`,
+       WHERE card_uid = ?`,
       [cardUid]
     );
 
@@ -227,7 +227,7 @@ class FraudDetectionEngine {
     const result = await query(
       `SELECT membership_status, fraud_status, subscription_end_date 
        FROM members 
-       WHERE id = $1`,
+       WHERE id = ?`,
       [memberId]
     );
 
@@ -262,8 +262,8 @@ class FraudDetectionEngine {
     const recentTaps = await query(
       `SELECT vendor_country, vendor_city, latitude, longitude, tap_timestamp 
        FROM nfc_tap_logs 
-       WHERE card_uid = $1 
-       AND tap_timestamp > $2 
+       WHERE card_uid = ? 
+       AND tap_timestamp > ? 
        ORDER BY tap_timestamp DESC 
        LIMIT 10`,
       [cardUid, oneHourAgo]
@@ -310,8 +310,8 @@ class FraudDetectionEngine {
     const hourlyTaps = await query(
       `SELECT COUNT(*) as count 
        FROM nfc_tap_logs 
-       WHERE card_uid = $1 
-       AND tap_timestamp > $2`,
+       WHERE card_uid = ? 
+       AND tap_timestamp > ?`,
       [cardUid, oneHourAgo]
     );
 
@@ -347,7 +347,7 @@ class FraudDetectionEngine {
    */
   async checkCountryMismatch(memberId, vendorCountry) {
     const member = await query(
-      `SELECT country FROM members WHERE id = $1`,
+      `SELECT country FROM members WHERE id = ?`,
       [memberId]
     );
 
@@ -373,7 +373,7 @@ class FraudDetectionEngine {
     const card = await query(
       `SELECT expiry_date, blocked_at, card_status 
        FROM nfc_cards 
-       WHERE card_uid = $1 AND member_id = $2`,
+       WHERE card_uid = ? AND member_id = ?`,
       [cardUid, memberId]
     );
 
@@ -404,9 +404,9 @@ class FraudDetectionEngine {
     const recentTaps = await query(
       `SELECT vendor_country, vendor_city, latitude, longitude 
        FROM nfc_tap_logs 
-       WHERE card_uid = $1 
-       AND tap_timestamp > $2 
-       AND (vendor_country != $3 OR vendor_city != $4)`,
+       WHERE card_uid = ? 
+       AND tap_timestamp > ? 
+       AND (vendor_country != ? OR vendor_city != ?)`,
       [cardUid, fiveMinutesAgo, vendorCountry, vendorCity]
     );
 
@@ -433,10 +433,10 @@ class FraudDetectionEngine {
 
     await query(
       `UPDATE members 
-       SET fraud_score = $1, 
-           fraud_status = $2, 
+       SET fraud_score = ?, 
+           fraud_status = ?, 
            updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $3`,
+       WHERE id = ?`,
       [fraudScore, fraudStatus, memberId]
     );
   }

@@ -78,7 +78,7 @@ class NFCValidationPipeline {
         `SELECT id, membership_type, membership_status, fraud_score, fraud_status, 
                 subscription_end_date, country
          FROM members 
-         WHERE id = $1`,
+         WHERE id = ?`,
         [memberId]
       );
 
@@ -112,7 +112,7 @@ class NFCValidationPipeline {
 
       // Get vendor data for fraud detection
       const vendor = await query(
-        `SELECT country, city, category FROM vendors WHERE id = $1`,
+        `SELECT country, city, category FROM vendors WHERE id = ?`,
         [vendorId]
       );
 
@@ -285,7 +285,7 @@ class NFCValidationPipeline {
     const result = await query(
       `SELECT id, member_id, card_status, encrypted_token 
        FROM nfc_cards 
-       WHERE card_uid = $1`,
+       WHERE card_uid = ?`,
       [cardUid]
     );
 
@@ -309,7 +309,7 @@ class NFCValidationPipeline {
     const result = await query(
       `SELECT card_status, expiry_date, blocked_at 
        FROM nfc_cards 
-       WHERE card_uid = $1 AND member_id = $2`,
+       WHERE card_uid = ? AND member_id = ?`,
       [cardUid, memberId]
     );
 
@@ -343,8 +343,7 @@ class NFCValidationPipeline {
        (member_id, card_uid, vendor_id, vendor_country, vendor_city, 
         pos_reader_id, tap_timestamp, latitude, longitude, fraud_score, 
         fraud_flags, validation_result, offer_applied)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         tapData.memberId,
         tapData.cardUid,
@@ -362,7 +361,7 @@ class NFCValidationPipeline {
       ]
     );
 
-    return result.rows[0].id;
+    return result.rows.insertId;
   }
 
   /**
@@ -373,7 +372,7 @@ class NFCValidationPipeline {
       await query(
         `INSERT INTO nfc_tap_logs 
          (card_uid, vendor_id, pos_reader_id, tap_timestamp, validation_result, fraud_score)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           cardUid,
           vendorId,

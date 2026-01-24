@@ -6,8 +6,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { ObjectId } from 'mongodb';
-import { getCollection } from '../database/mongodb-connection.js';
+import { query } from '../database/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
@@ -41,10 +40,12 @@ router.post('/register', apiLimiter, async (req, res) => {
     }
 
     // Check if user already exists
-    const membersCollection = await getCollection('members');
-    const existingUser = await membersCollection.findOne({ email: email.toLowerCase() });
+    const existingUserResult = await query(
+      'SELECT id, email FROM members WHERE email = ?',
+      [email.toLowerCase()]
+    );
     
-    if (existingUser) {
+    if (existingUserResult.rows.length > 0) {
       return res.status(409).json({ error: 'User already exists' });
     }
 
@@ -54,60 +55,59 @@ router.post('/register', apiLimiter, async (req, res) => {
     // Build full name from firstName/lastName if provided, otherwise use fullName
     const finalFullName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : 'Member');
 
+    // Prepare address JSON
+    const addressJson = (address || country) ? JSON.stringify({
+      street: address || '',
+      country: country || '',
+    }) : null;
+
     // Create user with pending payment status - save ALL provided data
-    const newMember = {
-      email: email.toLowerCase(),
-      password_hash: passwordHash,
-      full_name: finalFullName,
-      first_name: firstName || '',
-      last_name: lastName || '',
-      mobile_number: phoneNumber || mobileNumber || '',
-      membership_type: membershipType || 'annual',
-      membership_status: 'pending', // Will be activated after payment
-      payment_status: 'pending',
-      fraud_status: 'clean',
-      fraud_score: 0,
-      role: 'member',
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
+    const result = await query(
+      `INSERT INTO members (
+        email, password_hash, full_name, first_name, last_name, 
+        mobile_number, membership_type, membership_status, payment_status,
+        fraud_status, fraud_score, role, address, id_number, id_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        email.toLowerCase(),
+        passwordHash,
+        finalFullName,
+        firstName || null,
+        lastName || null,
+        phoneNumber || mobileNumber || null,
+        membershipType || 'annual',
+        'pending', // Will be activated after payment
+        'pending',
+        'clean',
+        0,
+        'member',
+        addressJson,
+        idNumber || null,
+        idType || null,
+      ]
+    );
 
-    // Add address if provided
-    if (address || country) {
-      newMember.address = {
-        street: address || '',
-        country: country || '',
-      };
-    }
-
-    // Add ID information if provided
-    if (idNumber) {
-      newMember.id_number = idNumber;
-      newMember.id_type = idType || 'emirates_id';
-    }
-
-    const result = await membersCollection.insertOne(newMember);
-    const memberId = result.insertedId;
+    const memberId = result.rows.insertId;
     
     console.log('✅ New member registered and saved to database:', {
-      id: memberId.toString(),
-      email: newMember.email,
-      fullName: newMember.full_name,
-      firstName: newMember.first_name || 'N/A',
-      lastName: newMember.last_name || 'N/A',
-      mobileNumber: newMember.mobile_number || 'N/A',
-      address: newMember.address || 'N/A',
-      idNumber: newMember.id_number || 'N/A',
-      idType: newMember.id_type || 'N/A',
-      membershipType: newMember.membership_type,
-      membershipStatus: newMember.membership_status,
-      paymentStatus: newMember.payment_status,
-      role: newMember.role,
+      id: memberId,
+      email: email.toLowerCase(),
+      fullName: finalFullName,
+      firstName: firstName || 'N/A',
+      lastName: lastName || 'N/A',
+      mobileNumber: phoneNumber || mobileNumber || 'N/A',
+      address: addressJson ? JSON.parse(addressJson) : 'N/A',
+      idNumber: idNumber || 'N/A',
+      idType: idType || 'N/A',
+      membershipType: membershipType || 'annual',
+      membershipStatus: 'pending',
+      paymentStatus: 'pending',
+      role: 'member',
     });
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: memberId.toString(), email: newMember.email, role: 'member' },
+      { userId: memberId.toString(), email: email.toLowerCase(), role: 'member' },
       process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
       { expiresIn: '7d' }
     );
@@ -118,7 +118,7 @@ router.post('/register', apiLimiter, async (req, res) => {
       action: 'member_registered',
       resourceType: 'member',
       resourceId: memberId,
-      details: { email: newMember.email },
+      details: { email: email.toLowerCase() },
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
@@ -128,10 +128,10 @@ router.post('/register', apiLimiter, async (req, res) => {
       token,
       user: {
         id: memberId.toString(),
-        email: newMember.email,
-        fullName: newMember.full_name,
+        email: email.toLowerCase(),
+        fullName: finalFullName,
         role: 'member',
-        membershipType: newMember.membership_type,
+        membershipType: membershipType || 'annual',
       },
     });
   } catch (error) {
@@ -156,27 +156,33 @@ router.post('/login', apiLimiter, async (req, res) => {
     let role = 'member';
 
     if (userType === 'admin') {
-      // Check admin users (if you have an admin_users collection)
-      const adminCollection = await getCollection('admin_users');
-      const admin = await adminCollection.findOne({ email: email.toLowerCase() });
-      if (admin) {
-        user = admin;
+      // Check admin users
+      const adminResult = await query(
+        'SELECT id, email, password_hash, full_name, role FROM admin_users WHERE email = ? AND is_active = 1',
+        [email.toLowerCase()]
+      );
+      if (adminResult.rows.length > 0) {
+        user = adminResult.rows[0];
         role = 'admin';
       }
     } else if (userType === 'vendor') {
       // Check vendors
-      const vendorsCollection = await getCollection('vendors');
-      const vendor = await vendorsCollection.findOne({ email: email.toLowerCase() });
-      if (vendor) {
-        user = vendor;
+      const vendorResult = await query(
+        'SELECT id, email, password_hash, vendor_name as full_name FROM vendors WHERE email = ? AND is_active = 1',
+        [email.toLowerCase()]
+      );
+      if (vendorResult.rows.length > 0) {
+        user = vendorResult.rows[0];
         role = 'vendor';
       }
     } else {
       // Check members
-      const membersCollection = await getCollection('members');
-      const member = await membersCollection.findOne({ email: email.toLowerCase() });
-      if (member) {
-        user = member;
+      const memberResult = await query(
+        'SELECT id, email, password_hash, full_name, membership_type FROM members WHERE email = ?',
+        [email.toLowerCase()]
+      );
+      if (memberResult.rows.length > 0) {
+        user = memberResult.rows[0];
         role = 'member';
       }
     }
@@ -186,7 +192,7 @@ router.post('/login', apiLimiter, async (req, res) => {
     }
 
     // Verify password
-    const passwordHash = user.password_hash || user.passwordHash;
+    const passwordHash = user.password_hash;
     if (!passwordHash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -196,10 +202,18 @@ router.post('/login', apiLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Update last login for admin users
+    if (userType === 'admin') {
+      await query(
+        'UPDATE admin_users SET last_login = NOW() WHERE id = ?',
+        [user.id]
+      );
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       {
-        userId: user._id?.toString() || user.id?.toString(),
+        userId: user.id.toString(),
         email: user.email,
         role: role,
       },
@@ -212,7 +226,7 @@ router.post('/login', apiLimiter, async (req, res) => {
       userType: role,
       action: 'user_login',
       resourceType: userType,
-      resourceId: user._id || user.id,
+      resourceId: user.id,
       details: { email: user.email },
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
@@ -222,11 +236,11 @@ router.post('/login', apiLimiter, async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id || user.id,
+        id: user.id,
         email: user.email,
-        fullName: user.full_name || user.fullName || user.vendor_name,
+        fullName: user.full_name,
         role: role,
-        membershipType: user.membership_type || user.membershipType,
+        membershipType: user.membership_type || null,
       },
     });
   } catch (error) {
@@ -246,22 +260,28 @@ router.get('/me', authenticateToken, async (req, res) => {
     let user = null;
 
     if (role === 'admin') {
-      const adminCollection = await getCollection('admin_users');
-      const admin = await adminCollection.findOne({ _id: new ObjectId(userId) });
-      if (admin) {
-        user = admin;
+      const adminResult = await query(
+        'SELECT id, email, full_name, role FROM admin_users WHERE id = ?',
+        [userId]
+      );
+      if (adminResult.rows.length > 0) {
+        user = adminResult.rows[0];
       }
     } else if (role === 'vendor') {
-      const vendorsCollection = await getCollection('vendors');
-      const vendor = await vendorsCollection.findOne({ _id: new ObjectId(userId) });
-      if (vendor) {
-        user = vendor;
+      const vendorResult = await query(
+        'SELECT id, email, vendor_name as full_name FROM vendors WHERE id = ?',
+        [userId]
+      );
+      if (vendorResult.rows.length > 0) {
+        user = vendorResult.rows[0];
       }
     } else {
-      const membersCollection = await getCollection('members');
-      const member = await membersCollection.findOne({ _id: new ObjectId(userId) });
-      if (member) {
-        user = member;
+      const memberResult = await query(
+        'SELECT id, email, full_name, membership_type FROM members WHERE id = ?',
+        [userId]
+      );
+      if (memberResult.rows.length > 0) {
+        user = memberResult.rows[0];
       }
     }
 
@@ -272,12 +292,11 @@ router.get('/me', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       user: {
-        id: user._id || user.id,
+        id: user.id,
         email: user.email,
-        fullName: user.full_name || user.fullName || user.vendor_name,
+        fullName: user.full_name,
         role: role,
-        membershipType: user.membership_type || user.membershipType,
-        profileIconStyle: user.profile_icon_style || user.profileIconStyle,
+        membershipType: user.membership_type || null,
       },
     });
   } catch (error) {
@@ -301,26 +320,25 @@ router.put('/profile-icon', authenticateToken, apiLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid icon style' });
     }
 
-    let collection = null;
+    let result;
     if (role === 'admin') {
-      collection = await getCollection('admin_users');
+      result = await query(
+        'UPDATE admin_users SET profile_icon_style = ?, updated_at = NOW() WHERE id = ?',
+        [iconStyle, userId]
+      );
     } else if (role === 'vendor') {
-      collection = await getCollection('vendors');
+      result = await query(
+        'UPDATE vendors SET profile_icon_style = ?, updated_at = NOW() WHERE id = ?',
+        [iconStyle, userId]
+      );
     } else {
-      collection = await getCollection('members');
+      result = await query(
+        'UPDATE members SET profile_icon_style = ?, updated_at = NOW() WHERE id = ?',
+        [iconStyle, userId]
+      );
     }
 
-    const result = await collection.updateOne(
-      { _id: new ObjectId(userId) },
-      { 
-        $set: { 
-          profile_icon_style: iconStyle,
-          updated_at: new Date()
-        } 
-      }
-    );
-
-    if (result.matchedCount === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -372,54 +390,68 @@ router.post('/save-personal-info', apiLimiter, async (req, res) => {
     }
 
     // Check if user already exists
-    const membersCollection = await getCollection('members');
-    const existingUser = await membersCollection.findOne({ 
-      email: email.toLowerCase() 
-    });
+    const existingUserResult = await query(
+      'SELECT id FROM members WHERE email = ?',
+      [email.toLowerCase()]
+    );
 
     const fullName = `${firstName} ${lastName}`;
-    const memberData = {
-      full_name: fullName,
-      first_name: firstName,
-      last_name: lastName,
-      email: email.toLowerCase(),
-      mobile_number: phoneNumber,
-      address: {
-        street: address,
-        country: country,
-      },
-      id_number: idNumber,
-      id_type: idType, // 'emirates_id' or 'passport'
-      membership_status: 'pending',
-      payment_status: 'pending',
-      fraud_status: 'clean',
-      fraud_score: 0,
-      role: 'member',
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
+    const addressJson = JSON.stringify({
+      street: address,
+      country: country,
+    });
 
-    if (existingUser) {
+    if (existingUserResult.rows.length > 0) {
       // Update existing user with personal information
-      await membersCollection.updateOne(
-        { email: email.toLowerCase() },
-        {
-          $set: {
-            ...memberData,
-            updated_at: new Date(),
-          }
-        }
+      await query(
+        `UPDATE members SET 
+          full_name = ?, first_name = ?, last_name = ?, 
+          mobile_number = ?, address = ?, id_number = ?, id_type = ?,
+          updated_at = NOW()
+        WHERE email = ?`,
+        [
+          fullName,
+          firstName,
+          lastName,
+          phoneNumber,
+          addressJson,
+          idNumber,
+          idType || 'emirates_id',
+          email.toLowerCase(),
+        ]
       );
       
       res.json({
         success: true,
         message: 'Personal information updated',
-        userId: existingUser._id.toString(),
+        userId: existingUserResult.rows[0].id.toString(),
       });
     } else {
       // Create new member record with pending status
-      const result = await membersCollection.insertOne(memberData);
-      const memberId = result.insertedId;
+      const result = await query(
+        `INSERT INTO members (
+          full_name, first_name, last_name, email, mobile_number,
+          address, id_number, id_type, membership_status, payment_status,
+          fraud_status, fraud_score, role
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          fullName,
+          firstName,
+          lastName,
+          email.toLowerCase(),
+          phoneNumber,
+          addressJson,
+          idNumber,
+          idType || 'emirates_id',
+          'pending',
+          'pending',
+          'clean',
+          0,
+          'member',
+        ]
+      );
+
+      const memberId = result.rows.insertId;
 
       // Log audit
       await logAudit({
@@ -427,7 +459,7 @@ router.post('/save-personal-info', apiLimiter, async (req, res) => {
         action: 'personal_info_saved',
         resourceType: 'member',
         resourceId: memberId,
-        details: { email: memberData.email },
+        details: { email: email.toLowerCase() },
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });
@@ -448,4 +480,3 @@ router.post('/save-personal-info', apiLimiter, async (req, res) => {
 });
 
 export default router;
-

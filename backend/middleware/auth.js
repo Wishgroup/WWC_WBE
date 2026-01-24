@@ -39,8 +39,8 @@ export const authenticateAdmin = async (req, res, next) => {
   // Optionally verify admin user from database
   if (req.user?.userId) {
     const admin = await query(
-      `SELECT * FROM admin_users WHERE id = $1 AND is_active = true`,
-      [req.user.userId]
+      `SELECT * FROM admin_users WHERE id = ? AND is_active = true`,
+      [parseInt(req.user.userId, 10)]
     );
 
     if (admin.rows.length === 0) {
@@ -65,7 +65,7 @@ export const authenticateVendor = async (req, res, next) => {
 
   // Verify vendor from database
   const vendor = await query(
-    `SELECT * FROM vendors WHERE vendor_code = $1 AND is_active = true`,
+    `SELECT * FROM vendors WHERE vendor_code = ? AND is_active = true`,
     [apiKey]
   );
 

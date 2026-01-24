@@ -24,7 +24,7 @@ export const logAudit = async (auditData) => {
     await query(
       `INSERT INTO audit_logs 
        (user_type, user_id, action, resource_type, resource_id, details, ip_address, user_agent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userType,
         userId || null,
@@ -63,8 +63,7 @@ export const createFraudEvent = async (eventData) => {
       `INSERT INTO fraud_events 
        (member_id, card_uid, vendor_id, event_type, severity, fraud_score, 
         description, metadata, action_taken)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         memberId,
         cardUid,
@@ -78,12 +77,14 @@ export const createFraudEvent = async (eventData) => {
       ]
     );
 
+    const fraudEventId = result.rows.insertId;
+
     // Also log to audit
     await logAudit({
       userType: 'system',
       action: 'fraud_event_created',
       resourceType: 'fraud_event',
-      resourceId: result.rows[0].id,
+      resourceId: fraudEventId,
       details: {
         memberId,
         cardUid,
@@ -93,7 +94,7 @@ export const createFraudEvent = async (eventData) => {
       },
     });
 
-    return result.rows[0].id;
+    return fraudEventId;
   } catch (error) {
     console.error('Fraud event creation error:', error);
     throw error;
@@ -117,45 +118,38 @@ export const getAuditLogs = async (filters = {}) => {
 
   let queryText = 'SELECT * FROM audit_logs WHERE 1=1';
   const params = [];
-  let paramIndex = 1;
 
   if (userType) {
-    queryText += ` AND user_type = $${paramIndex}`;
+    queryText += ` AND user_type = ?`;
     params.push(userType);
-    paramIndex++;
   }
 
   if (action) {
-    queryText += ` AND action = $${paramIndex}`;
+    queryText += ` AND action = ?`;
     params.push(action);
-    paramIndex++;
   }
 
   if (resourceType) {
-    queryText += ` AND resource_type = $${paramIndex}`;
+    queryText += ` AND resource_type = ?`;
     params.push(resourceType);
-    paramIndex++;
   }
 
   if (resourceId) {
-    queryText += ` AND resource_id = $${paramIndex}`;
+    queryText += ` AND resource_id = ?`;
     params.push(resourceId);
-    paramIndex++;
   }
 
   if (startDate) {
-    queryText += ` AND created_at >= $${paramIndex}`;
+    queryText += ` AND created_at >= ?`;
     params.push(startDate);
-    paramIndex++;
   }
 
   if (endDate) {
-    queryText += ` AND created_at <= $${paramIndex}`;
+    queryText += ` AND created_at <= ?`;
     params.push(endDate);
-    paramIndex++;
   }
 
-  queryText += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+  queryText += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const result = await query(queryText, params);

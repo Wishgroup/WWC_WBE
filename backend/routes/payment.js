@@ -5,8 +5,7 @@
 
 import express from 'express';
 import Stripe from 'stripe';
-import { ObjectId } from 'mongodb';
-import { getCollection } from '../database/mongodb-connection.js';
+import { query } from '../database/connection.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
 import { sendWelcomeEmail } from '../services/EmailService.js';
@@ -37,12 +36,16 @@ router.post('/create-session', apiLimiter, async (req, res) => {
     }
 
     // Get user from database
-    const membersCollection = await getCollection('members');
-    const user = await membersCollection.findOne({ _id: new ObjectId(userId) });
+    const userResult = await query(
+      'SELECT id, email, full_name FROM members WHERE id = ?',
+      [parseInt(userId, 10)]
+    );
 
-    if (!user) {
+    if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    const user = userResult.rows[0];
 
     // Define membership prices (in cents for Stripe)
     const membershipPrices = {
@@ -82,17 +85,19 @@ router.post('/create-session', apiLimiter, async (req, res) => {
     });
 
     // Store payment session in database
-    const paymentSessionsCollection = await getCollection('payment_sessions');
-    await paymentSessionsCollection.insertOne({
-      session_id: session.id,
-      user_id: new ObjectId(userId),
-      membership_type: membershipType,
-      amount: amount / 100, // Convert cents to dollars
-      currency: 'usd',
-      status: 'pending',
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
+    await query(
+      `INSERT INTO payment_sessions (session_id, member_id, email, amount, currency, payment_status, form_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        session.id,
+        parseInt(userId, 10),
+        user.email,
+        amount / 100, // Convert cents to dollars
+        'usd',
+        'pending',
+        JSON.stringify({ membershipType }),
+      ]
+    );
 
     // Log audit
     await logAudit({
@@ -149,38 +154,33 @@ router.post('/webhook', async (req, res) => {
       const userName = session.metadata?.userName || '';
 
       // Update payment session status
-      const paymentSessionsCollection = await getCollection('payment_sessions');
-      await paymentSessionsCollection.updateOne(
-        { session_id: sessionId },
-        {
-          $set: {
-            status: 'completed',
-            payment_intent_id: session.payment_intent,
-            updated_at: new Date(),
-          },
-        }
+      await query(
+        `UPDATE payment_sessions 
+         SET payment_status = ?, transaction_id = ?, updated_at = NOW()
+         WHERE session_id = ?`,
+        ['completed', session.payment_intent, sessionId]
       );
 
       // Update user payment status and activate membership
-      const membersCollection = await getCollection('members');
-      const updateResult = await membersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        {
-          $set: {
-            payment_status: 'paid',
-            payment_session_id: sessionId,
-            payment_amount: session.amount_total / 100, // Convert cents to dollars
-            payment_currency: session.currency,
-            payment_date: new Date(),
-            membership_status: 'active',
-            updated_at: new Date(),
-          },
-        }
+      const updateResult = await query(
+        `UPDATE members 
+         SET payment_status = ?, payment_amount = ?, membership_status = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [
+          'paid',
+          session.amount_total / 100, // Convert cents to dollars
+          'active',
+          parseInt(userId, 10),
+        ]
       );
 
-      if (updateResult.modifiedCount > 0) {
+      if (updateResult.rowCount > 0) {
         // Get updated user for email
-        const user = await membersCollection.findOne({ _id: new ObjectId(userId) });
+        const userResult = await query(
+          'SELECT id, email, full_name FROM members WHERE id = ?',
+          [parseInt(userId, 10)]
+        );
+        const user = userResult.rows[0];
 
         // Send welcome email
         try {
@@ -225,14 +225,17 @@ router.get('/verify/:sessionId', apiLimiter, async (req, res) => {
     const { sessionId } = req.params;
 
     // Check payment session in database
-    const paymentSessionsCollection = await getCollection('payment_sessions');
-    const paymentSession = await paymentSessionsCollection.findOne({
-      session_id: sessionId,
-    });
+    const paymentSessionResult = await query(
+      'SELECT * FROM payment_sessions WHERE session_id = ? LIMIT 1',
+      [sessionId]
+    );
 
-    if (!paymentSession) {
+    if (paymentSessionResult.rows.length === 0) {
       return res.status(404).json({ error: 'Payment session not found' });
     }
+
+    const paymentSession = paymentSessionResult.rows[0];
+    const formData = paymentSession.form_data ? JSON.parse(paymentSession.form_data) : {};
 
     // Also verify with Stripe
     try {
@@ -240,22 +243,22 @@ router.get('/verify/:sessionId', apiLimiter, async (req, res) => {
       
       res.json({
         success: true,
-        status: paymentSession.status,
+        status: paymentSession.payment_status,
         stripeStatus: stripeSession.payment_status,
-        paid: paymentSession.status === 'completed' || stripeSession.payment_status === 'paid',
+        paid: paymentSession.payment_status === 'completed' || stripeSession.payment_status === 'paid',
         amount: paymentSession.amount,
         currency: paymentSession.currency,
-        membershipType: paymentSession.membership_type,
+        membershipType: formData.membershipType || paymentSession.membership_type,
       });
     } catch (stripeError) {
       // If Stripe verification fails, still return database status
       res.json({
         success: true,
-        status: paymentSession.status,
-        paid: paymentSession.status === 'completed',
+        status: paymentSession.payment_status,
+        paid: paymentSession.payment_status === 'completed',
         amount: paymentSession.amount,
         currency: paymentSession.currency,
-        membershipType: paymentSession.membership_type,
+        membershipType: formData.membershipType || paymentSession.membership_type,
       });
     }
   } catch (error) {
@@ -357,9 +360,6 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     const randomStr = Math.random().toString(36).substr(2, 9).toUpperCase();
     const orderId = `WWC${timestamp}${randomStr}`.substring(0, 30); // Ensure max 30 chars
 
-    // Note: We will NOT save data to database here
-    // Data will be saved only after successful payment in the response handler
-
     // Create payment request (card details will be collected by CC Avenue)
     const paymentRequest = createPaymentRequest({
       orderId,
@@ -385,19 +385,19 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     }
 
     // Store payment session in database
-    const paymentSessionsCollection = await getCollection('payment_sessions');
-    await paymentSessionsCollection.insertOne({
-      order_id: orderId,
-      session_id: orderId, // Using order_id as session_id for CC Avenue
-      membership_type: membershipType,
-      amount: parseFloat(amount),
-      currency: 'AED',
-      status: 'pending',
-      payment_gateway: 'ccavenue',
-      form_data: formData, // Store form data for later processing
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
+    await query(
+      `INSERT INTO payment_sessions (order_id, session_id, email, amount, currency, payment_status, form_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        orderId,
+        orderId, // Using order_id as session_id for CC Avenue
+        billingDetails.email,
+        paymentAmount,
+        'AED',
+        'pending',
+        JSON.stringify(formData), // Store form data for later processing
+      ]
+    );
 
     // Log audit
     await logAudit({
@@ -407,7 +407,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
       resourceId: orderId,
       details: {
         membershipType,
-        amount: parseFloat(amount),
+        amount: paymentAmount,
         gateway: 'ccavenue',
       },
       ipAddress: req.ip,
@@ -466,87 +466,79 @@ router.post('/ccavenue/response', async (req, res) => {
     console.log(`CC Avenue payment response received - Order ID: ${orderId}, Status: ${orderStatus}`);
 
     // Find payment session
-    const paymentSessionsCollection = await getCollection('payment_sessions');
-    const paymentSession = await paymentSessionsCollection.findOne({
-      order_id: orderId,
-    });
+    const paymentSessionResult = await query(
+      'SELECT * FROM payment_sessions WHERE order_id = ? LIMIT 1',
+      [orderId]
+    );
 
-    if (!paymentSession) {
+    if (paymentSessionResult.rows.length === 0) {
       return res.status(404).json({ error: 'Payment session not found' });
     }
 
+    const paymentSession = paymentSessionResult.rows[0];
+    const formData = paymentSession.form_data ? JSON.parse(paymentSession.form_data) : {};
+
     // Update payment session
-    await paymentSessionsCollection.updateOne(
-      { order_id: orderId },
-      {
-        $set: {
-          status: orderStatus === 'Success' ? 'completed' : 'failed',
-          payment_response: responseData,
-          updated_at: new Date(),
-        },
-      }
+    await query(
+      `UPDATE payment_sessions 
+       SET payment_status = ?, form_data = JSON_SET(COALESCE(form_data, '{}'), '$.payment_response', ?), updated_at = NOW()
+       WHERE order_id = ?`,
+      [
+        orderStatus === 'Success' ? 'completed' : 'failed',
+        JSON.stringify(responseData),
+        orderId,
+      ]
     );
 
     // If payment successful, save membership application and create member account
     if (orderStatus === 'Success') {
-      const formData = paymentSession.form_data;
-
       // Save membership application to database
       try {
-        const membershipApplicationsCollection = await getCollection('membership_applications');
-        
-        const applicationData = {
-          order_id: orderId,
-          // Personal Information
-          full_name: formData.fullName,
-          date_of_birth: formData.dateOfBirth,
-          nationality: formData.nationality,
-          gender: formData.gender || '',
-          passport_id: formData.passportId,
-          
-          // Contact Details
-          email: formData.email.toLowerCase(),
-          mobile_number: formData.mobileNumber,
-          address: {
-            street: formData.street,
-            city: formData.city,
-            country: formData.country,
-          },
-          
-          // Membership Selection
-          membership_type: formData.membershipType,
-          referral_code: formData.referralCode || '',
-          referred_by: formData.referredBy || '',
-          renewal_preference: formData.renewalPreference || '',
-          
-          // Professional Information (Optional)
-          occupation: formData.occupation || '',
-          company_name: formData.companyName || '',
-          industry: formData.industry || '',
-          business_email: formData.businessEmail || '',
-          
-          // Emergency Contact
-          emergency_contact: {
-            name: formData.emergencyName,
-            relationship: formData.emergencyRelationship,
-            mobile: formData.emergencyMobile,
-          },
-          
-          // Payment Details
-          payment_method: formData.paymentMethod || 'Card',
-          amount: parseFloat(responseData.amount),
-          currency: 'AED',
-          
-          // Status
-          status: 'completed',
-          payment_status: 'paid',
-          
-          // Timestamps
-          created_at: new Date(),
-          updated_at: new Date(),
-        };
+        const addressJson = JSON.stringify({
+          street: formData.street || '',
+          city: formData.city || '',
+          country: formData.country || '',
+        });
 
-        await membershipApplicationsCollection.insertOne(applicationData);
+        const emergencyContactJson = JSON.stringify({
+          name: formData.emergencyName || '',
+          relationship: formData.emergencyRelationship || '',
+          mobile: formData.emergencyMobile || '',
+        });
+
+        await query(
+          `INSERT INTO membership_applications (
+            order_id, full_name, date_of_birth, nationality, gender, passport_id,
+            email, mobile_number, address, membership_type, referral_code, referred_by,
+            renewal_preference, occupation, company_name, industry, business_email,
+            emergency_contact, payment_method, amount, currency, status, payment_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            orderId,
+            formData.fullName,
+            formData.dateOfBirth || null,
+            formData.nationality || null,
+            formData.gender || '',
+            formData.passportId || null,
+            formData.email.toLowerCase(),
+            formData.mobileNumber || '',
+            addressJson,
+            formData.membershipType,
+            formData.referralCode || '',
+            formData.referredBy || '',
+            formData.renewalPreference || '',
+            formData.occupation || '',
+            formData.companyName || '',
+            formData.industry || '',
+            formData.businessEmail || '',
+            emergencyContactJson,
+            formData.paymentMethod || 'Card',
+            parseFloat(responseData.amount),
+            'AED',
+            'completed',
+            'paid',
+          ]
+        );
         console.log('Membership application saved after successful payment:', orderId);
       } catch (dbError) {
         console.error('Error saving membership application:', dbError);
@@ -555,107 +547,93 @@ router.post('/ccavenue/response', async (req, res) => {
 
       // Create member account
       try {
-        const membersCollection = await getCollection('members');
-        
         // Check if member already exists
-        const existingMember = await membersCollection.findOne({ 
-          email: formData.email.toLowerCase() 
+        const existingMemberResult = await query(
+          'SELECT * FROM members WHERE email = ? LIMIT 1',
+          [formData.email.toLowerCase()]
+        );
+
+        const addressJson = JSON.stringify({
+          street: formData.street || formData.address || '',
+          city: formData.city || '',
+          country: formData.country || '',
         });
 
-        if (!existingMember) {
+        const emergencyContactJson = JSON.stringify({
+          name: formData.emergencyName || '',
+          relationship: formData.emergencyRelationship || '',
+          mobile: formData.emergencyMobile || '',
+        });
+
+        if (existingMemberResult.rows.length === 0) {
           // Build full name from firstName/lastName or use fullName
           const fullName = formData.fullName || 
             `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 
             'Member';
 
-          const memberData = {
-            full_name: fullName,
-            first_name: formData.firstName || '',
-            last_name: formData.lastName || '',
-            email: formData.email.toLowerCase(),
-            mobile_number: formData.mobileNumber || formData.phoneNumber || '',
-            date_of_birth: formData.dateOfBirth || '',
-            nationality: formData.nationality || '',
-            gender: formData.gender || '',
-            passport_id: formData.passportId || formData.idNumber || '',
-            id_number: formData.idNumber || formData.passportId || '',
-            id_type: formData.idType || 'emirates_id',
-            address: {
-              street: formData.street || formData.address || '',
-              city: formData.city || '',
-              country: formData.country || '',
-            },
-            membership_type: (formData.membershipType || 'annual').toLowerCase(),
-            membership_status: 'active', // Set to active after payment
-            payment_status: 'paid',
-            payment_amount: parseFloat(responseData.amount),
-            payment_currency: 'AED',
-            payment_date: new Date(),
-            payment_session_id: orderId,
-            emergency_contact: {
-              name: formData.emergencyName || '',
-              relationship: formData.emergencyRelationship || '',
-              mobile: formData.emergencyMobile || '',
-            },
-            // Professional Information
-            occupation: formData.occupation || '',
-            company_name: formData.companyName || '',
-            industry: formData.industry || '',
-            business_email: formData.businessEmail || '',
-            // Referral
-            referral_code: formData.referralCode || '',
-            referred_by: formData.referredBy || '',
-            renewal_preference: formData.renewalPreference || '',
-            // Fraud status
-            fraud_status: 'clean',
-            fraud_score: 0,
-            role: 'member', // Set role to 'member' after successful payment
-            created_at: new Date(),
-            updated_at: new Date(),
-          };
-
-          await membersCollection.insertOne(memberData);
+          await query(
+            `INSERT INTO members (
+              full_name, first_name, last_name, email, mobile_number,
+              address, membership_type, membership_status, payment_status,
+              payment_amount, id_number, id_type, emergency_contact,
+              fraud_status, fraud_score, role
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              fullName,
+              formData.firstName || '',
+              formData.lastName || '',
+              formData.email.toLowerCase(),
+              formData.mobileNumber || formData.phoneNumber || '',
+              addressJson,
+              (formData.membershipType || 'annual').toLowerCase(),
+              'active',
+              'paid',
+              parseFloat(responseData.amount),
+              formData.idNumber || formData.passportId || '',
+              formData.idType || 'emirates_id',
+              emergencyContactJson,
+              'clean',
+              0,
+              'member',
+            ]
+          );
           console.log('Member account created after successful payment:', orderId);
         } else {
           // Update existing member with payment and membership info
-          const updateData = {
-            full_name: formData.fullName || `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || existingMember.full_name,
-            mobile_number: formData.mobileNumber || formData.phoneNumber || existingMember.mobile_number,
-            address: {
-              street: formData.street || formData.address || existingMember.address?.street || '',
-              city: formData.city || existingMember.address?.city || '',
-              country: formData.country || existingMember.address?.country || '',
-            },
-            membership_type: formData.membershipType?.toLowerCase() || existingMember.membership_type,
-            membership_status: 'active', // Set to active after payment
-            payment_status: 'paid',
-            payment_amount: parseFloat(responseData.amount),
-            payment_currency: 'AED',
-            payment_date: new Date(),
-            payment_session_id: orderId,
-            role: 'member', // Ensure role is set to 'member' after payment
-            updated_at: new Date(),
-          };
+          const existingMember = existingMemberResult.rows[0];
+          const existingAddress = existingMember.address ? JSON.parse(existingMember.address) : {};
 
-          // Add first_name and last_name if provided
-          if (formData.firstName) {
-            updateData.first_name = formData.firstName;
-          }
-          if (formData.lastName) {
-            updateData.last_name = formData.lastName;
-          }
-
-          // Add optional fields if provided
-          if (formData.idNumber || formData.passportId) {
-            updateData.id_number = formData.idNumber || formData.passportId;
-            updateData.id_type = formData.idType || 'emirates_id';
-          }
-
-          await membersCollection.updateOne(
-            { email: formData.email.toLowerCase() },
-            {
-              $set: updateData,
-            }
+          await query(
+            `UPDATE members SET
+              full_name = COALESCE(?, full_name),
+              first_name = COALESCE(?, first_name),
+              last_name = COALESCE(?, last_name),
+              mobile_number = COALESCE(?, mobile_number),
+              address = ?,
+              membership_type = ?,
+              membership_status = ?,
+              payment_status = ?,
+              payment_amount = ?,
+              role = ?,
+              updated_at = NOW()
+            WHERE email = ?`,
+            [
+              formData.fullName || existingMember.full_name,
+              formData.firstName || existingMember.first_name,
+              formData.lastName || existingMember.last_name,
+              formData.mobileNumber || formData.phoneNumber || existingMember.mobile_number,
+              JSON.stringify({
+                street: formData.street || formData.address || existingAddress.street || '',
+                city: formData.city || existingAddress.city || '',
+                country: formData.country || existingAddress.country || '',
+              }),
+              formData.membershipType?.toLowerCase() || existingMember.membership_type,
+              'active',
+              'paid',
+              parseFloat(responseData.amount),
+              'member',
+              formData.email.toLowerCase(),
+            ]
           );
           console.log('Existing member updated after successful payment - Status: active, Role: member, Order ID:', orderId);
         }
@@ -718,4 +696,3 @@ router.post('/ccavenue/response', async (req, res) => {
 });
 
 export default router;
-
