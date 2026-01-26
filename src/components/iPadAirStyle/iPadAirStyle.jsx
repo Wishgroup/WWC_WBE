@@ -108,7 +108,7 @@ const iPadAirStyle = () => {
               </div>
             </div>
             <div className="hero-actions">
-              <button className="btn-primary-large" onClick={() => navigate('/join')}>
+              <button className="btn-primary-large" onClick={() => navigate('/register')}>
                 Join Now
               </button>
               <a href="#tech-specs" className="link-primary">

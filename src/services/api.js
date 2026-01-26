@@ -265,6 +265,47 @@ export const paymentAPI = {
       body: JSON.stringify(paymentData),
     });
   },
+
+  // Bank Transfer API
+  initiateBankTransfer: (paymentData) => {
+    // Include paymentMethod in the data
+    const dataWithMethod = {
+      ...paymentData,
+      paymentMethod: 'bank_transfer',
+    };
+    return apiRequest('/api/payment/ccavenue/initiate', {
+      method: 'POST',
+      body: JSON.stringify(dataWithMethod),
+    });
+  },
+
+  uploadReceipt: (orderId, file) => {
+    const formData = new FormData();
+    formData.append('receipt', file);
+    formData.append('orderId', orderId);
+
+    const token = localStorage.getItem('token');
+    return fetch(`${API_BASE_URL}/api/payment/bank-transfer/upload-receipt`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: formData,
+    }).then(async (response) => {
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      if (!response.ok) {
+        const error = new Error(data.error || data.message || `Request failed with status ${response.status}`);
+        error.response = { status: response.status, data };
+        throw error;
+      }
+      return data;
+    });
+  },
+
+  getReceiptStatus: (orderId) => {
+    return apiRequest(`/api/payment/bank-transfer/receipt-status/${orderId}`);
+  },
 };
 
 /**

@@ -13,6 +13,9 @@ import CountryRuleEngine from '../services/CountryRuleEngine.js';
 import OfferEngine from '../services/OfferEngine.js';
 import { getAuditLogs } from '../services/AuditService.js';
 import { logAudit } from '../services/AuditService.js';
+import { sendWelcomeEmail, sendRejectionEmail } from '../services/EmailService.js';
+import path from 'path';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -389,6 +392,336 @@ router.post('/fraud/resolve', async (req, res) => {
     });
   } catch (error) {
     console.error('Resolve fraud error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/bank-transfers/pending
+ * Get all pending bank transfer receipts
+ */
+router.get('/bank-transfers/pending', async (req, res) => {
+  try {
+    const { status = 'pending,under_review' } = req.query;
+    const statuses = status.split(',');
+
+    let queryText = `
+      SELECT 
+        btr.*,
+        ps.email,
+        ps.amount,
+        ps.currency,
+        ps.order_id,
+        ps.created_at as payment_created_at,
+        m.id as member_id,
+        m.full_name as member_name,
+        m.membership_type,
+        au.full_name as reviewed_by_name
+      FROM bank_transfer_receipts btr
+      LEFT JOIN payment_sessions ps ON btr.payment_session_id = ps.id
+      LEFT JOIN members m ON btr.member_id = m.id
+      LEFT JOIN admin_users au ON btr.admin_reviewed_by = au.id
+      WHERE btr.upload_status IN (${statuses.map(() => '?').join(',')})
+      ORDER BY btr.created_at DESC
+    `;
+
+    const result = await query(queryText, statuses);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      count: result.rows.length,
+    });
+  } catch (error) {
+    console.error('Error fetching pending receipts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/bank-transfers/:receiptId
+ * Get receipt details including file download
+ */
+router.get('/bank-transfers/:receiptId', async (req, res) => {
+  try {
+    const { receiptId } = req.params;
+
+    const result = await query(
+      `SELECT 
+        btr.*,
+        ps.email,
+        ps.amount,
+        ps.currency,
+        ps.order_id,
+        ps.created_at as payment_created_at,
+        m.id as member_id,
+        m.full_name as member_name,
+        m.membership_type,
+        m.email as member_email,
+        au.full_name as reviewed_by_name
+      FROM bank_transfer_receipts btr
+      LEFT JOIN payment_sessions ps ON btr.payment_session_id = ps.id
+      LEFT JOIN members m ON btr.member_id = m.id
+      LEFT JOIN admin_users au ON btr.admin_reviewed_by = au.id
+      WHERE btr.id = ?`,
+      [receiptId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
+
+    const receipt = result.rows[0];
+
+    // Generate file download URL
+    const fileUrl = `/api/admin/bank-transfers/${receiptId}/download`;
+
+    res.json({
+      success: true,
+      data: {
+        ...receipt,
+        fileUrl,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching receipt details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/bank-transfers/:receiptId/download
+ * Download receipt file
+ */
+router.get('/bank-transfers/:receiptId/download', async (req, res) => {
+  try {
+    const { receiptId } = req.params;
+
+    const result = await query(
+      'SELECT receipt_file_path, receipt_file_name, receipt_mime_type FROM bank_transfer_receipts WHERE id = ?',
+      [receiptId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
+
+    const receipt = result.rows[0];
+
+    if (!fs.existsSync(receipt.receipt_file_path)) {
+      return res.status(404).json({ error: 'Receipt file not found' });
+    }
+
+    res.setHeader('Content-Type', receipt.receipt_mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${receipt.receipt_file_name}"`);
+
+    const fileStream = fs.createReadStream(receipt.receipt_file_path);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Error downloading receipt:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/admin/bank-transfers/:receiptId/review
+ * Review and approve/reject receipt
+ */
+router.post('/bank-transfers/:receiptId/review', async (req, res) => {
+  try {
+    const { receiptId } = req.params;
+    const { action, notes } = req.body;
+    // Get admin ID from auth middleware - try req.admin first, then req.user
+    let adminId = req.admin?.id;
+    if (!adminId && req.user?.userId) {
+      // Try to get admin from database using userId
+      const adminResult = await query(
+        'SELECT id FROM admin_users WHERE id = ? AND is_active = true',
+        [parseInt(req.user.userId, 10)]
+      );
+      if (adminResult.rows.length > 0) {
+        adminId = adminResult.rows[0].id;
+      }
+    }
+    // If still no adminId, use a system/admin identifier (for API key auth)
+    if (!adminId) {
+      adminId = null; // Will be logged as system action
+    }
+
+    if (!action || !['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be "approve" or "reject"' });
+    }
+
+    // Get receipt with related data
+    const receiptResult = await query(
+      `SELECT 
+        btr.*,
+        ps.id as payment_session_id,
+        ps.member_id,
+        ps.email,
+        ps.amount,
+        ps.currency,
+        ps.order_id,
+        m.full_name as member_name,
+        m.membership_type,
+        m.membership_status
+      FROM bank_transfer_receipts btr
+      LEFT JOIN payment_sessions ps ON btr.payment_session_id = ps.id
+      LEFT JOIN members m ON btr.member_id = m.id
+      WHERE btr.id = ?`,
+      [receiptId]
+    );
+
+    if (receiptResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
+
+    const receipt = receiptResult.rows[0];
+
+    if (action === 'approve') {
+      // Update receipt status
+      await query(
+        `UPDATE bank_transfer_receipts SET
+          upload_status = 'approved',
+          admin_reviewed_by = ?,
+          admin_reviewed_at = NOW(),
+          admin_notes = ?,
+          updated_at = NOW()
+        WHERE id = ?`,
+        [adminId, notes || null, receiptId]
+      );
+
+      // Update payment session
+      await query(
+        `UPDATE payment_sessions SET
+          payment_status = 'completed',
+          updated_at = NOW()
+        WHERE id = ?`,
+        [receipt.payment_session_id]
+      );
+
+      // Update member status and payment info
+      if (receipt.member_id) {
+        await query(
+          `UPDATE members SET
+            membership_status = 'active',
+            payment_status = 'paid',
+            payment_amount = ?,
+            subscription_start_date = NOW(),
+            subscription_end_date = CASE 
+              WHEN ? = 'lifetime' THEN NULL 
+              ELSE DATE_ADD(NOW(), INTERVAL 1 YEAR)
+            END,
+            updated_at = NOW()
+          WHERE id = ?`,
+          [receipt.amount, receipt.membership_type, receipt.member_id]
+        );
+
+        // Send welcome email
+        try {
+          await sendWelcomeEmail(
+            receipt.email,
+            receipt.member_name || 'Member',
+            receipt.membership_type || 'annual'
+          );
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+          // Continue even if email fails
+        }
+      }
+
+      // Log audit
+      await logAudit({
+        userType: 'admin',
+        userId: adminId,
+        action: 'receipt_approved',
+        resourceType: 'payment',
+        resourceId: receipt.order_id,
+        details: {
+          receiptId,
+          memberId: receipt.member_id,
+          amount: receipt.amount,
+          notes: notes || null,
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      res.json({
+        success: true,
+        message: 'Receipt approved successfully. Member has been activated.',
+        receiptId,
+      });
+    } else if (action === 'reject') {
+      // Update receipt status
+      await query(
+        `UPDATE bank_transfer_receipts SET
+          upload_status = 'rejected',
+          admin_reviewed_by = ?,
+          admin_reviewed_at = NOW(),
+          admin_notes = ?,
+          updated_at = NOW()
+        WHERE id = ?`,
+        [adminId, notes || 'Receipt rejected', receiptId]
+      );
+
+      // Update payment session back to pending
+      await query(
+        `UPDATE payment_sessions SET
+          payment_status = 'pending_bank_transfer',
+          updated_at = NOW()
+        WHERE id = ?`,
+        [receipt.payment_session_id]
+      );
+
+      // Update member status
+      if (receipt.member_id) {
+        await query(
+          `UPDATE members SET
+            membership_status = 'pending',
+            updated_at = NOW()
+          WHERE id = ?`,
+          [receipt.member_id]
+        );
+      }
+
+      // Send rejection email
+      try {
+        await sendRejectionEmail(
+          receipt.email,
+          receipt.member_name || 'Member',
+          receipt.order_id,
+          notes || 'Receipt rejected. Please upload a new receipt.'
+        );
+      } catch (emailError) {
+        console.error('Error sending rejection email:', emailError);
+        // Continue even if email fails
+      }
+
+      // Log audit
+      await logAudit({
+        userType: 'admin',
+        userId: adminId,
+        action: 'receipt_rejected',
+        resourceType: 'payment',
+        resourceId: receipt.order_id,
+        details: {
+          receiptId,
+          memberId: receipt.member_id,
+          notes: notes || null,
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      res.json({
+        success: true,
+        message: 'Receipt rejected. Member has been notified.',
+        receiptId,
+      });
+    }
+  } catch (error) {
+    console.error('Error reviewing receipt:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

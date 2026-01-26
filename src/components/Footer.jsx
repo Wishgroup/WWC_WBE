@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import './Footer.css'
 
 const Footer = () => {
@@ -18,10 +19,10 @@ const Footer = () => {
             <div className="footer-column">
               <h4 className="footer-heading">Support</h4>
               <ul className="footer-list">
-                <li><a href="#member-support">Member Support</a></li>
+                <li><a href="/Support">Member Support</a></li>
                 <li><a href="#order-status">Order Status</a></li>
                 <li><a href="#rejoin">Rejoin WWC</a></li>
-                <li><a href="#login">Member Login</a></li>
+                <li><a href="/Login">Member Login</a></li>
                 <li><a href="#community">WWC Community</a></li>
               </ul>
             </div>
@@ -29,7 +30,6 @@ const Footer = () => {
             <div className="footer-column">
               <h4 className="footer-heading">Company</h4>
               <ul className="footer-list">
-                <li><a href="#support">Support</a></li>
                 <li><a href="#careers">Careers</a></li>
                 <li><a href="#mission">Our Mission</a></li>
                 <li><a href="#press">Press Center</a></li>
@@ -39,10 +39,10 @@ const Footer = () => {
             <div className="footer-column">
               <h4 className="footer-heading">Legal</h4>
               <ul className="footer-list">
-                <li><a href="#terms">Terms of Use</a></li>
-                <li><a href="#privacy">Privacy Policy</a></li>
-                <li><a href="#security">Security</a></li>
-                <li><a href="#cookies">Cookie Policy</a></li>
+                <li><Link to="/terms">Terms of Use</Link></li>
+                <li><Link to="/privacy">Privacy Policy</Link></li>
+                <li><Link to="/security">Security</Link></li>
+                <li><Link to="/cookie-policy">Cookie Policy</Link></li>
               </ul>
             </div>
 
@@ -53,7 +53,7 @@ const Footer = () => {
                 <li><a href="#refer">Refer a Friend</a></li>
                 <li><a href="#gift">Gift Membership</a></li>
                 <li><a href="#corporate">Corporate Gifting</a></li>
-                <li><a href="#student">Student Discount</a></li>
+                
               </ul>
             </div>
           </div>

@@ -10,9 +10,17 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import AdminDashboard from './pages/AdminDashboard'
 import MemberDashboard from './pages/MemberDashboard'
 import VendorDashboard from './pages/VendorDashboard'
+import Support from './pages/Support'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
+import Security from './pages/Security'
+import CookiePolicy from './pages/CookiePolicy'
+import BankTransferReceipt from './pages/BankTransferReceipt'
 import ProtectedRoute from './components/ProtectedRoute'
 import PageTransition from './components/PageTransition'
 import FloatingButton from './components/FloatingButton'
+import CookieConsent from './components/CookieConsent'
+import TermsPrivacySummary from './components/TermsPrivacySummary'
 import './App.css'
 
 function AppRoutes() {
@@ -30,6 +38,12 @@ function AppRoutes() {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failed" element={<PaymentSuccess />} />
         <Route path="/payment/response" element={<PaymentSuccess />} />
+        <Route path="/payment/bank-transfer/receipt/:orderId" element={<BankTransferReceipt />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/security" element={<Security />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
         
         {/* Protected routes */}
         <Route 
@@ -69,6 +83,8 @@ function App() {
     <Router>
       <AppRoutes />
       <FloatingButton />
+      <CookieConsent />
+      <TermsPrivacySummary />
     </Router>
   )
 }

@@ -18,7 +18,7 @@ const Intro = () => {
             </p>
             <div className="intro-statements">
               <BlurText
-                text="This is not a discount club."
+                text="Some communities are built around offers. Others are built around people."
                 delay={150}
                 animateBy="words"
                 direction="top"
@@ -26,7 +26,7 @@ const Intro = () => {
                 startDelay={0}
               />
               <BlurText
-                text="This is not an investment scheme."
+                text="This is where Lifestyle, Ocean Experiences and Trusted Value come together ."
                 delay={150}
                 animateBy="words"
                 direction="top"
@@ -34,7 +34,7 @@ const Intro = () => {
                 startDelay={1600}
               />
               <BlurText
-                text="This is a place to belong."
+                text="It's not where you go.Let's Wish Beyond the Waves."
                 delay={150}
                 animateBy="words"
                 direction="top"

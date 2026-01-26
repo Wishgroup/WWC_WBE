@@ -92,7 +92,7 @@ const Memberships = () => {
                 <button 
                   className="membership-cta"
                   onClick={() => {
-                    navigate('/join')
+                    navigate('/register')
                   }}
                 >
                   {membership.cta}

@@ -19,7 +19,7 @@ const Events = () => {
           <button 
             className="events-cta smooth-hover"
             onClick={() => {
-              navigate('/join')
+              navigate('/register')
             }}
           >
             View Upcoming Events

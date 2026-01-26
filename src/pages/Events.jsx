@@ -130,7 +130,7 @@ const Events = () => {
             <button 
               className="join-now-button smooth-hover"
               onClick={() => {
-                navigate('/join')
+                navigate('/register')
               }}
             >
               JOIN NOW

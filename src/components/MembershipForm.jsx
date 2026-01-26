@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { paymentAPI, authAPI } from '../services/api'
 import CreditCard from './CreditCard'
 import './MembershipForm.css'
@@ -30,6 +31,8 @@ const MEMBERSHIP_PLANS = {
 }
 
 function MembershipForm() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
@@ -45,13 +48,31 @@ function MembershipForm() {
     // Step 2: Membership Selection
     membershipType: 'annual', // 'annual' or 'lifetime'
     
-    // Step 3: Payment (handled by CC Avenue)
+    // Step 3: Payment
+    paymentMethod: 'card', // 'card' or 'bank_transfer'
   })
   
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState(null)
   const [userId, setUserId] = useState(null)
+
+  // Initialize form data from navigation state (if coming from registration)
+  useEffect(() => {
+    if (location.state) {
+      const { email, membershipType, userId: stateUserId } = location.state
+      if (email) {
+        setFormData(prev => ({
+          ...prev,
+          email: email,
+          membershipType: membershipType || prev.membershipType
+        }))
+      }
+      if (stateUserId) {
+        setUserId(stateUserId)
+      }
+    }
+  }, [location.state])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -121,7 +142,8 @@ function MembershipForm() {
           const result = await authAPI.savePersonalInfo(personalInfo)
           
           if (result.success) {
-            setUserId(result.userId)
+            // Use the userId from result or keep existing one
+            setUserId(result.userId || userId)
             setCurrentStep(2)
           } else {
             setErrors({ general: result.error || 'Failed to save personal information. Please try again.' })
@@ -156,6 +178,7 @@ function MembershipForm() {
       const paymentData = {
         membershipType: formData.membershipType,
         amount: selectedPlan.price,
+        paymentMethod: formData.paymentMethod,
         billingDetails: {
           name: fullName,
           email: formData.email,
@@ -181,6 +204,26 @@ function MembershipForm() {
         }
       }
 
+      // Handle bank transfer
+      if (formData.paymentMethod === 'bank_transfer') {
+        const result = await paymentAPI.initiateBankTransfer(paymentData)
+
+        if (result.success && result.requiresReceiptUpload) {
+          // Redirect to receipt upload page
+          navigate(`/payment/bank-transfer/receipt/${result.orderId}`, {
+            state: {
+              orderId: result.orderId,
+              message: result.message,
+            }
+          })
+        } else {
+          setErrors({ payment: result.error || 'Failed to initiate bank transfer. Please try again.' })
+          setIsSubmitting(false)
+        }
+        return
+      }
+
+      // Handle card payment (CC Avenue)
       const result = await paymentAPI.initiateCCAvenuePayment(paymentData)
 
       if (result.success && result.paymentUrl && result.encryptedData) {
@@ -459,7 +502,7 @@ function MembershipForm() {
       {currentStep === 3 && (
         <div className="form-step">
           <h2 className="step-title">Payment Details</h2>
-          <p className="step-subtitle">You will be redirected to our secure payment gateway</p>
+          <p className="step-subtitle">Choose your preferred payment method</p>
 
           {errors.payment && (
             <div className="error-alert">
@@ -472,6 +515,57 @@ function MembershipForm() {
             </div>
           )}
 
+          {/* Payment Method Selection */}
+          <div className="payment-method-selection">
+            <label className="payment-method-label">Select Payment Method</label>
+            <div className="payment-method-options">
+              <label className={`payment-method-option ${formData.paymentMethod === 'card' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={formData.paymentMethod === 'card'}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                />
+                <div className="payment-method-content">
+                  <div className="payment-method-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                  </div>
+                  <div className="payment-method-details">
+                    <div className="payment-method-title">Card Payment</div>
+                    <div className="payment-method-description">Pay securely with credit/debit card via CC Avenue</div>
+                  </div>
+                </div>
+              </label>
+
+              <label className={`payment-method-option ${formData.paymentMethod === 'bank_transfer' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="bank_transfer"
+                  checked={formData.paymentMethod === 'bank_transfer'}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                />
+                <div className="payment-method-content">
+                  <div className="payment-method-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="10" x2="23" y2="10"/>
+                      <path d="M7 15h10M7 19h10"/>
+                    </svg>
+                  </div>
+                  <div className="payment-method-details">
+                    <div className="payment-method-title">Bank Transfer</div>
+                    <div className="payment-method-description">Transfer funds directly to our bank account</div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <div className="payment-summary">
             <div className="summary-item">
               <span>Membership Type:</span>
@@ -483,14 +577,30 @@ function MembershipForm() {
             </div>
             <div className="summary-item">
               <span>Payment Method:</span>
-              <span>CC Avenue (Secure Payment Gateway)</span>
+              <span>{formData.paymentMethod === 'card' ? 'Card Payment (CC Avenue)' : 'Bank Transfer'}</span>
             </div>
           </div>
+
+          {formData.paymentMethod === 'bank_transfer' && (
+            <div className="bank-transfer-info">
+              <div className="info-box">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10 18.3333C14.6024 18.3333 18.3333 14.6024 18.3333 10C18.3333 5.39763 14.6024 1.66667 10 1.66667C5.39763 1.66667 1.66667 5.39763 1.66667 10C1.66667 14.6024 5.39763 18.3333 10 18.3333Z"/>
+                  <path d="M10 6.66667V10" strokeLinecap="round"/>
+                  <path d="M10 13.3333H10.0083" strokeLinecap="round"/>
+                </svg>
+                <div>
+                  <strong>Bank Transfer Instructions:</strong>
+                  <p>After clicking "Send Bank Details", you will receive an email with our bank account information. Once you complete the transfer, you can upload your payment receipt for review.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {isSubmitting ? (
             <div className="payment-loading">
               <div className="spinner"></div>
-              <p>Redirecting to secure payment gateway...</p>
+              <p>{formData.paymentMethod === 'bank_transfer' ? 'Sending bank transfer instructions...' : 'Redirecting to secure payment gateway...'}</p>
             </div>
           ) : (
             <div className="form-actions">
@@ -498,7 +608,11 @@ function MembershipForm() {
                 Back
               </button>
               <button type="button" className="btn-primary" onClick={handlePayment} disabled={isSubmitting}>
-                {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
+                {isSubmitting 
+                  ? 'Processing...' 
+                  : formData.paymentMethod === 'bank_transfer' 
+                    ? 'Send Bank Details' 
+                    : 'Proceed to Payment'}
               </button>
             </div>
           )}

@@ -36,7 +36,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching user:', error)
-      logout()
+      // Don't block rendering if API fails - just clear invalid token
+      if (error.isNetworkError) {
+        // Network error - keep token but don't set user
+        console.warn('Network error - backend may be unavailable')
+      } else {
+        // Other errors - clear invalid token
+        logout()
+      }
     } finally {
       setLoading(false)
     }

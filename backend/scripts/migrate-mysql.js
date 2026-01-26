@@ -57,19 +57,34 @@ async function migrate() {
       }
     }
 
-    // Step 3: Select the database
-    await connection.execute(`USE \`${dbConfig.database}\``);
-    console.log(`✅ Using database '${dbConfig.database}'`);
+    // Step 3: Close and reconnect with database selected
+    await connection.end();
+    connection = await mysql.createConnection(dbConfig);
+    console.log(`✅ Connected to database '${dbConfig.database}'`);
 
     // Read schema file
     const schemaPath = join(__dirname, '../database/mysql-schema.sql');
     const schema = readFileSync(schemaPath, 'utf8');
 
     // Split by semicolon and execute each statement
-    const statements = schema
+    // Remove comments and empty lines, then split by semicolon
+    const cleanedSchema = schema
+      .split('\n')
+      .map(line => {
+        // Remove inline comments
+        const commentIndex = line.indexOf('--');
+        if (commentIndex >= 0) {
+          return line.substring(0, commentIndex).trim();
+        }
+        return line.trim();
+      })
+      .filter(line => line.length > 0)
+      .join('\n');
+
+    const statements = cleanedSchema
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .filter(s => s.length > 0 && !s.match(/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/i) === null || s.match(/^CREATE/i));
 
     console.log(`📝 Executing ${statements.length} SQL statements...`);
 
@@ -77,7 +92,8 @@ async function migrate() {
       const statement = statements[i];
       if (statement.trim()) {
         try {
-          await connection.execute(statement);
+          // Use query() for statements that might not support prepared statements
+          await connection.query(statement);
           console.log(`  ✓ Statement ${i + 1}/${statements.length} executed`);
         } catch (error) {
           // Ignore "table already exists" errors
@@ -105,6 +121,7 @@ async function migrate() {
     console.log('  - payment_sessions');
     console.log('  - membership_applications');
     console.log('  - audit_logs');
+    console.log('  - bank_transfer_receipts');
     console.log('\n✨ Ready to use!');
 
     process.exit(0);
