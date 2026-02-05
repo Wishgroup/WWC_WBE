@@ -30,8 +30,8 @@ const FloatingButton = () => {
   }, [])
 
   const handleClick = () => {
-    // Navigate to join page
-    navigate('/join')
+    // Navigate to signup page
+    navigate('/register')
   }
 
   return (

@@ -120,7 +120,7 @@ const Login = () => {
                 <div className="form-group">
                   <label htmlFor="email">Email Address</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    {/* <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path
                         d="M2.5 6.66667L9.0755 11.0504C9.63533 11.4236 10.3647 11.4236 10.9245 11.0504L17.5 6.66667M4.16667 15.8333H15.8333C16.7538 15.8333 17.5 15.0872 17.5 14.1667V5.83333C17.5 4.91286 16.7538 4.16667 15.8333 4.16667H4.16667C3.24619 4.16667 2.5 4.91286 2.5 5.83333V14.1667C2.5 15.0872 3.24619 15.8333 4.16667 15.8333Z"
                         stroke="currentColor"
@@ -128,7 +128,7 @@ const Login = () => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-                    </svg>
+                    </svg> */}
                     <input
                       id="email"
                       type="email"
@@ -144,7 +144,7 @@ const Login = () => {
                 <div className="form-group">
                   <label htmlFor="password">Password</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    {/* <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path
                         d="M15.8333 9.16667H4.16667C3.24619 9.16667 2.5 9.91286 2.5 10.8333V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V10.8333C17.5 9.91286 16.7538 9.16667 15.8333 9.16667Z"
                         stroke="currentColor"
@@ -159,7 +159,7 @@ const Login = () => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-                    </svg>
+                    </svg> */}
                     <input
                       id="password"
                       type="password"

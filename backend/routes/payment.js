@@ -8,8 +8,11 @@ import Stripe from 'stripe';
 import { query } from '../database/connection.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
-import { sendWelcomeEmail } from '../services/EmailService.js';
+import { sendWelcomeEmail, sendBankTransferEmail } from '../services/EmailService.js';
 import { validateCardDetails, createPaymentRequest, verifyPaymentResponse } from '../services/CCAvenueService.js';
+import { uploadReceipt } from '../middleware/upload.js';
+import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -322,6 +325,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
       amount,
       billingDetails,
       formData, // Full form data for membership application
+      paymentMethod = 'card', // 'card' or 'bank_transfer'
     } = req.body;
 
     // Validate required fields
@@ -360,6 +364,90 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     const randomStr = Math.random().toString(36).substr(2, 9).toUpperCase();
     const orderId = `WWC${timestamp}${randomStr}`.substring(0, 30); // Ensure max 30 chars
 
+    // Handle bank transfer payment method
+    if (paymentMethod === 'bank_transfer') {
+      // Store payment session with bank transfer status
+      const result = await query(
+        `INSERT INTO payment_sessions (order_id, session_id, email, amount, currency, payment_method, payment_status, form_data)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          orderId,
+          orderId,
+          billingDetails.email,
+          paymentAmount,
+          'AED',
+          'bank_transfer',
+          'pending_bank_transfer',
+          JSON.stringify(formData),
+        ]
+      );
+
+      const paymentSessionId = result.rows.insertId;
+
+      // Get member_id from formData if available
+      let memberId = null;
+      if (formData.userId) {
+        memberId = parseInt(formData.userId, 10);
+      } else if (formData.email) {
+        // Try to find member by email
+        const memberResult = await query(
+          'SELECT id FROM members WHERE email = ?',
+          [formData.email.toLowerCase()]
+        );
+        if (memberResult.rows.length > 0) {
+          memberId = memberResult.rows[0].id;
+        }
+      }
+
+      // Update payment_session with member_id if found
+      if (memberId) {
+        await query(
+          'UPDATE payment_sessions SET member_id = ? WHERE id = ?',
+          [memberId, paymentSessionId]
+        );
+      }
+
+      // Send bank transfer email
+      try {
+        await sendBankTransferEmail(
+          billingDetails.email,
+          billingDetails.name,
+          membershipType,
+          paymentAmount,
+          'AED',
+          orderId
+        );
+      } catch (emailError) {
+        console.error('Error sending bank transfer email:', emailError);
+        // Continue even if email fails
+      }
+
+      // Log audit
+      await logAudit({
+        userType: 'member',
+        action: 'bank_transfer_initiated',
+        resourceType: 'payment',
+        resourceId: orderId,
+        details: {
+          membershipType,
+          amount: paymentAmount,
+          paymentMethod: 'bank_transfer',
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      return res.json({
+        success: true,
+        orderId,
+        paymentMethod: 'bank_transfer',
+        requiresReceiptUpload: true,
+        receiptUploadUrl: `${FRONTEND_URL}/payment/bank-transfer/receipt/${orderId}`,
+        message: 'Bank transfer instructions have been sent to your email.',
+      });
+    }
+
+    // Continue with CC Avenue card payment flow
     // Create payment request (card details will be collected by CC Avenue)
     const paymentRequest = createPaymentRequest({
       orderId,
@@ -386,14 +474,15 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
 
     // Store payment session in database
     await query(
-      `INSERT INTO payment_sessions (order_id, session_id, email, amount, currency, payment_status, form_data)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO payment_sessions (order_id, session_id, email, amount, currency, payment_method, payment_status, form_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         orderId,
         orderId, // Using order_id as session_id for CC Avenue
         billingDetails.email,
         paymentAmount,
         'AED',
+        'card',
         'pending',
         JSON.stringify(formData), // Store form data for later processing
       ]
@@ -409,6 +498,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
         membershipType,
         amount: paymentAmount,
         gateway: 'ccavenue',
+        paymentMethod: 'card',
       },
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
@@ -577,7 +667,7 @@ router.post('/ccavenue/response', async (req, res) => {
               address, membership_type, membership_status, payment_status,
               payment_amount, id_number, id_type, emergency_contact,
               fraud_status, fraud_score, role
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', 'paid', ?, ?, ?, ?, ?, ?, ?)`,
             [
               fullName,
               formData.firstName || '',
@@ -692,6 +782,246 @@ router.post('/ccavenue/response', async (req, res) => {
   } catch (error) {
     console.error('Error processing payment response:', error);
     res.status(500).json({ error: 'Failed to process payment response' });
+  }
+});
+
+/**
+ * POST /api/payment/bank-transfer/upload-receipt
+ * Upload receipt for bank transfer payment
+ */
+router.post('/bank-transfer/upload-receipt', apiLimiter, uploadReceipt, async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order ID is required',
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Receipt file is required',
+      });
+    }
+
+    // Get payment session
+    const sessionResult = await query(
+      'SELECT * FROM payment_sessions WHERE order_id = ?',
+      [orderId]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      // Clean up uploaded file
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Error deleting file:', err);
+        }
+      }
+      return res.status(404).json({
+        success: false,
+        error: 'Payment session not found',
+      });
+    }
+
+    const paymentSession = sessionResult.rows[0];
+
+    // Check if receipt already exists
+    const existingReceiptResult = await query(
+      'SELECT * FROM bank_transfer_receipts WHERE order_id = ?',
+      [orderId]
+    );
+
+    let receiptId;
+    if (existingReceiptResult.rows.length > 0) {
+      // Update existing receipt
+      const existingReceipt = existingReceiptResult.rows[0];
+      receiptId = existingReceipt.id;
+
+      // Delete old file if it exists
+      if (existingReceipt.receipt_file_path) {
+        try {
+          fs.unlinkSync(existingReceipt.receipt_file_path);
+        } catch (err) {
+          console.error('Error deleting old file:', err);
+        }
+      }
+
+      await query(
+        `UPDATE bank_transfer_receipts SET
+          receipt_file_path = ?,
+          receipt_file_name = ?,
+          receipt_file_size = ?,
+          receipt_mime_type = ?,
+          upload_status = 'pending',
+          admin_reviewed_by = NULL,
+          admin_reviewed_at = NULL,
+          admin_notes = NULL,
+          updated_at = NOW()
+        WHERE id = ?`,
+        [
+          req.file.path,
+          req.file.filename,
+          req.file.size,
+          req.file.mimetype,
+          receiptId,
+        ]
+      );
+    } else {
+      // Create new receipt record
+      const receiptResult = await query(
+        `INSERT INTO bank_transfer_receipts (
+          member_id, payment_session_id, order_id,
+          receipt_file_path, receipt_file_name, receipt_file_size, receipt_mime_type,
+          upload_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        [
+          paymentSession.member_id || null,
+          paymentSession.id,
+          orderId,
+          req.file.path,
+          req.file.filename,
+          req.file.size,
+          req.file.mimetype,
+        ]
+      );
+      receiptId = receiptResult.rows.insertId;
+    }
+
+    // Update payment session status
+    await query(
+      `UPDATE payment_sessions SET
+        payment_status = 'receipt_uploaded',
+        updated_at = NOW()
+      WHERE order_id = ?`,
+      [orderId]
+    );
+
+    // Update member status if member_id exists
+    if (paymentSession.member_id) {
+      await query(
+        `UPDATE members SET
+          membership_status = 'pending_approval',
+          updated_at = NOW()
+        WHERE id = ?`,
+        [paymentSession.member_id]
+      );
+    }
+
+    // Log audit
+    await logAudit({
+      userType: 'member',
+      action: 'receipt_uploaded',
+      resourceType: 'payment',
+      resourceId: orderId,
+      details: {
+        receiptId,
+        fileName: req.file.filename,
+        fileSize: req.file.size,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      success: true,
+      message: 'Receipt uploaded successfully. It will be reviewed by our team.',
+      receiptId,
+      orderId,
+      status: 'pending',
+    });
+  } catch (error) {
+    console.error('Error uploading receipt:', error);
+    
+    // Clean up uploaded file on error
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Error deleting file:', err);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload receipt. Please try again.',
+    });
+  }
+});
+
+/**
+ * GET /api/payment/bank-transfer/receipt-status/:orderId
+ * Get receipt status for an order
+ */
+router.get('/bank-transfer/receipt-status/:orderId', apiLimiter, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Get receipt information
+    const receiptResult = await query(
+      `SELECT 
+        btr.*,
+        ps.email,
+        ps.amount,
+        ps.currency,
+        m.full_name as member_name
+      FROM bank_transfer_receipts btr
+      LEFT JOIN payment_sessions ps ON btr.payment_session_id = ps.id
+      LEFT JOIN members m ON btr.member_id = m.id
+      WHERE btr.order_id = ?
+      ORDER BY btr.created_at DESC
+      LIMIT 1`,
+      [orderId]
+    );
+
+    if (receiptResult.rows.length === 0) {
+      // Check if payment session exists
+      const sessionResult = await query(
+        'SELECT * FROM payment_sessions WHERE order_id = ?',
+        [orderId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found',
+        });
+      }
+
+      const session = sessionResult.rows[0];
+      return res.json({
+        success: true,
+        orderId,
+        status: session.payment_status,
+        receiptUploaded: false,
+        message: session.payment_status === 'pending_bank_transfer' 
+          ? 'Please upload your payment receipt'
+          : 'Receipt not uploaded yet',
+      });
+    }
+
+    const receipt = receiptResult.rows[0];
+
+    res.json({
+      success: true,
+      orderId,
+      status: receipt.upload_status,
+      receiptUploaded: true,
+      uploadDate: receipt.created_at,
+      reviewDate: receipt.admin_reviewed_at,
+      adminNotes: receipt.admin_notes,
+      fileName: receipt.receipt_file_name,
+    });
+  } catch (error) {
+    console.error('Error getting receipt status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get receipt status',
+    });
   }
 });
 

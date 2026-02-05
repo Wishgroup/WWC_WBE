@@ -22,6 +22,12 @@ const DB_CONFIG = {
   keepAliveInitialDelay: 0,
   charset: 'utf8mb4',
   timezone: '+00:00',
+  // SSL configuration for remote cPanel connections
+  // Set DB_SSL=true in .env to enable SSL
+  // For most cPanel hosts, rejectUnauthorized: false works, but use true for production
+  ssl: process.env.DB_SSL === 'true' ? {
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
+  } : false,
 };
 
 let pool = null;

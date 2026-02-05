@@ -57,29 +57,14 @@ const Register = () => {
         formData.membershipType
       )
       if (result.success) {
-        const userId = result.user?.id || user?.id
-        if (!userId) {
-          setError('Registration successful but user ID not found. Please try logging in.')
-          setLoading(false)
-          return
-        }
-        
-        try {
-          const paymentResult = await paymentAPI.createSession(
-            userId,
-            formData.membershipType
-          )
-          if (paymentResult.success && paymentResult.url) {
-            window.location.href = paymentResult.url
-          } else {
-            setError('Failed to create payment session. Please try again.')
-            setLoading(false)
-          }
-        } catch (paymentError) {
-          console.error('Payment session error:', paymentError)
-          setError('Failed to initialize payment. Please try again.')
-          setLoading(false)
-        }
+        // Navigate to membership form to collect additional details
+        navigate('/join', { 
+          state: { 
+            email: formData.email,
+            membershipType: formData.membershipType,
+            userId: result.user?.id 
+          } 
+        })
       } else {
         setError(result.error || 'Registration failed')
         setLoading(false)
@@ -102,24 +87,58 @@ const Register = () => {
               </div>
               <h1 className="brand-title">Join Wish Waves Club</h1>
               <p className="brand-subtitle">
-                Start your journey today and unlock exclusive benefits, premium access, and unforgettable experiences
+                Become a member and unlock exclusive benefits, premium access, and unforgettable experiences that last a lifetime
               </p>
               <div className="brand-features">
                 <div className="feature-item">
-                  <div className="feature-icon">🎁</div>
-                  <span>Exclusive Member Benefits</span>
+                  <div className="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                      <path d="M2 17L12 22L22 17" />
+                      <path d="M2 12L12 17L22 12" />
+                    </svg>
+                  </div>
+                  <div className="feature-content">
+                    <h3>Exclusive Benefits</h3>
+                    <p>Access to premium services and exclusive member-only offers</p>
+                  </div>
                 </div>
                 <div className="feature-item">
-                  <div className="feature-icon">🌟</div>
-                  <span>Premium Access & Events</span>
+                  <div className="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" />
+                      <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" />
+                      <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" />
+                      <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" />
+                    </svg>
+                  </div>
+                  <div className="feature-content">
+                    <h3>Premium Events</h3>
+                    <p>Invitations to exclusive events and destination experiences</p>
+                  </div>
                 </div>
                 <div className="feature-item">
-                  <div className="feature-icon">💎</div>
-                  <span>Lifetime Value</span>
+                  <div className="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                    </svg>
+                  </div>
+                  <div className="feature-content">
+                    <h3>Lifetime Value</h3>
+                    <p>Choose between annual or lifetime membership options</p>
+                  </div>
                 </div>
                 <div className="feature-item">
-                  <div className="feature-icon">🔐</div>
-                  <span>Secure & Trusted</span>
+                  <div className="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" />
+                      <path d="M12 8V12L15 15" />
+                    </svg>
+                  </div>
+                  <div className="feature-content">
+                    <h3>Secure & Trusted</h3>
+                    <p>Your information is protected with industry-leading security</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -165,22 +184,6 @@ const Register = () => {
                 <div className="form-group">
                   <label htmlFor="fullName">Full Name</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M10 10C12.3012 10 14.1667 8.13452 14.1667 5.83333C14.1667 3.53215 12.3012 1.66667 10 1.66667C7.69881 1.66667 5.83333 3.53215 5.83333 5.83333C5.83333 8.13452 7.69881 10 10 10Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M17.5 18.3333C17.5 15.1083 14.1417 12.5 10 12.5C5.85833 12.5 2.5 15.1083 2.5 18.3333"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                     <input
                       id="fullName"
                       type="text"
@@ -188,7 +191,7 @@ const Register = () => {
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       className="form-input"
                       required
-                      placeholder="John Doe"
+                      placeholder="Enter Full Name"
                     />
                   </div>
                 </div>
@@ -196,15 +199,6 @@ const Register = () => {
                 <div className="form-group">
                   <label htmlFor="email">Email Address</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M2.5 6.66667L9.0755 11.0504C9.63533 11.4236 10.3647 11.4236 10.9245 11.0504L17.5 6.66667M4.16667 15.8333H15.8333C16.7538 15.8333 17.5 15.0872 17.5 14.1667V5.83333C17.5 4.91286 16.7538 4.16667 15.8333 4.16667H4.16667C3.24619 4.16667 2.5 4.91286 2.5 5.83333V14.1667C2.5 15.0872 3.24619 15.8333 4.16667 15.8333Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                     <input
                       id="email"
                       type="email"
@@ -220,22 +214,6 @@ const Register = () => {
                 <div className="form-group">
                   <label htmlFor="membershipType">Membership Type</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M10 18.3333C14.6024 18.3333 18.3333 14.6024 18.3333 10C18.3333 5.39763 14.6024 1.66667 10 1.66667C5.39763 1.66667 1.66667 5.39763 1.66667 10C1.66667 14.6024 5.39763 18.3333 10 18.3333Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M10 6.66667V10L12.5 12.5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                     <select
                       id="membershipType"
                       value={formData.membershipType}
@@ -251,22 +229,6 @@ const Register = () => {
                 <div className="form-group">
                   <label htmlFor="password">Password</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M15.8333 9.16667H4.16667C3.24619 9.16667 2.5 9.91286 2.5 10.8333V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V10.8333C17.5 9.91286 16.7538 9.16667 15.8333 9.16667Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5.83333 9.16667V5.83333C5.83333 4.72826 6.27232 3.66846 7.05372 2.88706C7.83512 2.10565 8.89493 1.66667 10 1.66667C11.1051 1.66667 12.1649 2.10565 12.9463 2.88706C13.7277 3.66846 14.1667 4.72826 14.1667 5.83333V9.16667"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                     <input
                       id="password"
                       type="password"
@@ -283,22 +245,6 @@ const Register = () => {
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm Password</label>
                   <div className="input-wrapper">
-                    <svg className="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M15.8333 9.16667H4.16667C3.24619 9.16667 2.5 9.91286 2.5 10.8333V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V10.8333C17.5 9.91286 16.7538 9.16667 15.8333 9.16667Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5.83333 9.16667V5.83333C5.83333 4.72826 6.27232 3.66846 7.05372 2.88706C7.83512 2.10565 8.89493 1.66667 10 1.66667C11.1051 1.66667 12.1649 2.10565 12.9463 2.88706C13.7277 3.66846 14.1667 4.72826 14.1667 5.83333V9.16667"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                     <input
                       id="confirmPassword"
                       type="password"
@@ -323,7 +269,7 @@ const Register = () => {
                       Processing...
                     </>
                   ) : (
-                    'Create Account & Continue to Payment'
+                    'Create Account & Continue'
                   )}
                 </button>
               </form>

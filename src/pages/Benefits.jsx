@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import ScrollReveal from '../components/ScrollReveal'
 import BenefitsCarousel from '../components/BenefitsCarousel'
+import MembershipBenefits from '../components/MembershipBenefits'
 import './Benefits.css'
 
 const Benefits = () => {
@@ -46,6 +47,9 @@ const Benefits = () => {
       {/* Main Content */}
       <section className="benefits-main">
         <div className="benefits-container">
+          {/* Membership Benefits Details with Integrated Nav */}
+          <MembershipBenefits />
+
           {/* Benefits Carousel */}
           <BenefitsCarousel />
 
@@ -58,7 +62,7 @@ const Benefits = () => {
               </p>
               <button 
                 className="benefits-cta-button"
-                onClick={() => navigate('/join')}
+                onClick={() => navigate('/register')}
               >
                 Join Now
               </button>

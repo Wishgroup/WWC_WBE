@@ -176,7 +176,7 @@ const Hero = () => {
             <button 
               className="hero-cta hero-cta-primary smooth-hover"
               onClick={() => {
-                navigate('/join')
+                navigate('/register')
               }}
             >
               Join Now
@@ -184,7 +184,7 @@ const Hero = () => {
             <button 
               className="hero-cta hero-cta-secondary smooth-hover"
               onClick={() => {
-                navigate('/join')
+                navigate('/register')
               }}
             >
               Explore Membership

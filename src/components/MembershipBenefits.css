@@ -1,0 +1,396 @@
+.membership-benefits {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0;
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(26, 77, 77, 0.06);
+}
+
+/* Minimal Navigation Bar - Apple-style */
+.membership-nav-minimal {
+  display: flex;
+  background: var(--off-white);
+  border-bottom: 1px solid rgba(26, 77, 77, 0.08);
+  padding: 0;
+  position: relative;
+}
+
+.nav-tab {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 77, 77, 0.04);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+}
+
+.nav-tab:hover {
+  color: var(--teal-dark);
+  transform: translateY(-1px);
+}
+
+.nav-tab:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nav-tab:active {
+  transform: translateY(0) scale(0.98);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-tab.active {
+  color: var(--teal-dark);
+  background: var(--white);
+  font-weight: 600;
+}
+
+.nav-tab.active::before {
+  opacity: 0;
+}
+
+.nav-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--teal-medium);
+  transform: scaleX(1);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(26, 77, 77, 0.2);
+}
+
+.membership-benefits-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+/* Membership Fee Section */
+.membership-fee-section {
+  margin-bottom: 32px;
+}
+
+.membership-fee-card {
+  background: linear-gradient(
+    135deg,
+    var(--teal-dark) 0%,
+    var(--teal-medium-dark) 100%
+  );
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--white);
+  box-shadow: 0 4px 20px rgba(26, 77, 77, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.membership-fee-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 30% 50%,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+.membership-fee-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  opacity: 0.9;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.membership-fee-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.fee-primary {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.fee-secondary {
+  font-size: 16px;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.fee-period {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.membership-commitment {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+/* Description */
+.membership-description {
+  margin-bottom: 32px;
+  padding: 0 10px;
+}
+
+.membership-description p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Benefits Sections */
+.benefits-section {
+  margin-bottom: 32px;
+  padding: 0 10px;
+}
+
+.benefits-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--teal-dark);
+  margin-bottom: 20px;
+  text-align: center;
+  letter-spacing: 0.3px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.benefits-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--teal-medium),
+    transparent
+  );
+}
+
+.benefits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--off-white);
+  border-radius: 8px;
+  border-left: 3px solid var(--teal-medium);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.benefit-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(26, 77, 77, 0.08);
+  background: var(--white);
+}
+
+.benefit-bullet {
+  font-size: 16px;
+  color: var(--teal-dark);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefit-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Partner Category Sections (Lifetime) */
+.partner-category-section {
+  margin-bottom: 24px;
+}
+
+.partner-category-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--teal-medium-dark);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(26, 77, 77, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .membership-benefits {
+    max-width: 95%;
+  }
+
+  .membership-benefits-container {
+    padding: 24px 16px;
+  }
+
+  .nav-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .membership-fee-card {
+    padding: 20px 16px;
+  }
+
+  .fee-primary {
+    font-size: 28px;
+  }
+
+  .fee-secondary {
+    font-size: 14px;
+  }
+
+  .membership-fee-title {
+    font-size: 12px;
+  }
+
+  .benefits-section-title {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .partner-category-title {
+    font-size: 15px;
+  }
+
+  .benefit-item {
+    padding: 10px 12px;
+  }
+
+  .benefit-text {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .membership-benefits {
+    max-width: 98%;
+  }
+
+  .membership-benefits-container {
+    padding: 20px 12px;
+  }
+
+  .nav-tab {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .membership-fee-card {
+    padding: 18px 14px;
+  }
+
+  .fee-primary {
+    font-size: 24px;
+  }
+
+  .fee-secondary {
+    font-size: 13px;
+  }
+
+  .membership-fee-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .membership-description {
+    margin-bottom: 24px;
+  }
+
+  .membership-description p {
+    font-size: 13px;
+  }
+
+  .benefits-section {
+    padding: 0 5px;
+    margin-bottom: 24px;
+  }
+
+  .benefits-section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+  }
+
+  .partner-category-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .benefit-item {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .benefit-bullet {
+    font-size: 14px;
+  }
+
+  .benefit-text {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}

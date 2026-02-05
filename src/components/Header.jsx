@@ -103,7 +103,7 @@ const Header = () => {
               </button>
               <button 
                 className="btn-secondary"
-                onClick={() => navigate('/join')}
+                onClick={() => navigate('/register')}
               >
                 Join Now
               </button>

@@ -280,6 +280,30 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Bank Transfer Receipts Table
+CREATE TABLE IF NOT EXISTS bank_transfer_receipts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT,
+    payment_session_id INT,
+    order_id VARCHAR(255),
+    receipt_file_path VARCHAR(500) NOT NULL,
+    receipt_file_name VARCHAR(255) NOT NULL,
+    receipt_file_size INT,
+    receipt_mime_type VARCHAR(100),
+    upload_status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'under_review', 'approved', 'rejected'
+    admin_reviewed_by INT,
+    admin_reviewed_at TIMESTAMP NULL,
+    admin_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL,
+    FOREIGN KEY (payment_session_id) REFERENCES payment_sessions(id) ON DELETE SET NULL,
+    FOREIGN KEY (admin_reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL,
+    INDEX idx_member_id (member_id),
+    INDEX idx_payment_session_id (payment_session_id),
+    INDEX idx_upload_status (upload_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 
 
