@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { adminAPI } from '../../services/api'
+import { useNotification } from '../../hooks/useNotification'
 import './CountryRules.css'
 
 const CountryRules = () => {
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const { success, error, NotificationComponent } = useNotification()
   const [formData, setFormData] = useState({
     country_code: '',
     country_name: '',
@@ -21,16 +23,17 @@ const CountryRules = () => {
     e.preventDefault()
     try {
       await adminAPI.updateCountryRules(formData)
-      alert('Country rules updated successfully')
+      success('Country rules updated successfully')
       setShowForm(false)
       // Reload rules
-    } catch (error) {
-      alert('Error updating rules: ' + error.message)
+    } catch (err) {
+      error('Error updating rules: ' + (err.message || 'Unknown error'))
     }
   }
 
   return (
     <div className="country-rules">
+      {NotificationComponent}
       <div className="dashboard-header">
         <h1>Country Rules Management</h1>
         <p>Configure country-specific business rules and restrictions</p>

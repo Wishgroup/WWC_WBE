@@ -9,13 +9,17 @@ import OfferManagement from '../components/admin/OfferManagement'
 import CountryRules from '../components/admin/CountryRules'
 import NFCTestInterface from '../components/admin/NFCTestInterface'
 import AuditLogs from '../components/admin/AuditLogs'
+import WorkQueue from '../components/admin/WorkQueue'
+import BankTransferVerification from '../components/admin/BankTransferVerification'
 import './AdminDashboard.css'
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('fraud')
+  const [activeTab, setActiveTab] = useState('work-queue')
   const navigate = useNavigate()
 
   const tabs = [
+    { id: 'work-queue', label: 'Work Queue', icon: '📋' },
+    { id: 'bank-transfers', label: 'Bank Transfers', icon: '🏦' },
     { id: 'fraud', label: 'Fraud Monitoring', icon: '🛡️' },
     { id: 'cards', label: 'Card Management', icon: '💳' },
     { id: 'vendors', label: 'Vendor Analytics', icon: '📊' },
@@ -27,6 +31,10 @@ const AdminDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'work-queue':
+        return <WorkQueue />
+      case 'bank-transfers':
+        return <BankTransferVerification />
       case 'fraud':
         return <FraudDashboard />
       case 'cards':
@@ -42,7 +50,7 @@ const AdminDashboard = () => {
       case 'audit':
         return <AuditLogs />
       default:
-        return <FraudDashboard />
+        return <WorkQueue />
     }
   }
 

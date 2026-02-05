@@ -10,8 +10,153 @@ import { query } from '../database/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
+import { sendLoginNotification } from '../services/EmailService.js';
 
 const router = express.Router();
+
+/**
+ * Calculate account status and next action for a user
+ * @param {Object} userData - User data from database
+ * @param {string} role - User role ('member', 'vendor', 'admin')
+ * @returns {Object} - { allowed, account_status, next_action }
+ */
+function calculateAccountStatus(userData, role) {
+  if (role === 'admin') {
+    // Admins are always allowed if is_active
+    return {
+      allowed: userData.is_active !== 0 && userData.is_active !== false,
+      account_status: userData.is_active ? 'active' : 'inactive',
+      next_action: userData.is_active ? '/admin/dashboard' : '/login',
+    };
+  }
+
+  if (role === 'member') {
+    const membershipStatus = userData.membership_status || 'pending';
+    const paymentStatus = userData.payment_status || 'pending';
+    const subscriptionEndDate = userData.subscription_end_date;
+    const membershipType = userData.membership_type || 'annual';
+
+    // Check if expired (for annual memberships)
+    let isExpired = false;
+    if (membershipType === 'annual' && subscriptionEndDate) {
+      const endDate = new Date(subscriptionEndDate);
+      const now = new Date();
+      isExpired = endDate < now;
+    }
+
+    // Active if: status='active' AND payment='success'/'paid' AND not expired
+    const isActive = 
+      membershipStatus === 'active' && 
+      (paymentStatus === 'success' || paymentStatus === 'paid') && 
+      !isExpired;
+
+    if (isActive) {
+      return {
+        allowed: true,
+        account_status: 'active',
+        next_action: '/member/dashboard',
+      };
+    }
+
+    // Determine next action based on status
+    if (membershipStatus === 'rejected') {
+      return {
+        allowed: false,
+        account_status: 'rejected',
+        next_action: '/application/rejected',
+      };
+    }
+
+    if (paymentStatus === 'pending' || paymentStatus === null) {
+      return {
+        allowed: false,
+        account_status: 'payment_pending',
+        next_action: '/payment/pending',
+      };
+    }
+
+    if (membershipStatus === 'submitted' || membershipStatus === 'pending') {
+      return {
+        allowed: false,
+        account_status: 'pending',
+        next_action: '/application/pending',
+      };
+    }
+
+    if (isExpired) {
+      return {
+        allowed: false,
+        account_status: 'expired',
+        next_action: '/payment/pending',
+      };
+    }
+
+    // Default: show submitted page
+    return {
+      allowed: false,
+      account_status: 'submitted',
+      next_action: '/application/submitted',
+    };
+  }
+
+  if (role === 'vendor') {
+    // Check vendor_status if it exists, otherwise use is_active
+    const vendorStatus = userData.vendor_status || (userData.is_active ? 'active' : 'pending');
+    const paymentStatus = userData.payment_status || 'pending';
+
+    // Active if: status='active' AND payment='success'/'paid'
+    const isActive = 
+      vendorStatus === 'active' && 
+      (paymentStatus === 'success' || paymentStatus === 'paid');
+
+    if (isActive) {
+      return {
+        allowed: true,
+        account_status: 'active',
+        next_action: '/vendor/dashboard',
+      };
+    }
+
+    // Determine next action based on status
+    if (vendorStatus === 'rejected') {
+      return {
+        allowed: false,
+        account_status: 'rejected',
+        next_action: '/application/rejected',
+      };
+    }
+
+    if (paymentStatus === 'pending' || paymentStatus === null) {
+      return {
+        allowed: false,
+        account_status: 'payment_pending',
+        next_action: '/payment/pending',
+      };
+    }
+
+    if (vendorStatus === 'submitted' || vendorStatus === 'pending') {
+      return {
+        allowed: false,
+        account_status: 'pending',
+        next_action: '/application/pending',
+      };
+    }
+
+    // Default: show submitted page
+    return {
+      allowed: false,
+      account_status: 'submitted',
+      next_action: '/application/submitted',
+    };
+  }
+
+  // Default fallback
+  return {
+    allowed: false,
+    account_status: 'unknown',
+    next_action: '/login',
+  };
+}
 
 /**
  * POST /api/auth/register
@@ -166,9 +311,12 @@ router.post('/login', apiLimiter, async (req, res) => {
         role = 'admin';
       }
     } else if (userType === 'vendor') {
-      // Check vendors
+      // Check vendors - include status fields for active gating
       const vendorResult = await query(
-        'SELECT id, email, password_hash, vendor_name as full_name FROM vendors WHERE email = ? AND is_active = 1',
+        `SELECT id, email, password_hash, vendor_name as full_name, 
+         COALESCE(vendor_status, CASE WHEN is_active = 1 THEN 'active' ELSE 'pending' END) as vendor_status,
+         payment_status, is_active
+         FROM vendors WHERE email = ?`,
         [email.toLowerCase()]
       );
       if (vendorResult.rows.length > 0) {
@@ -176,9 +324,11 @@ router.post('/login', apiLimiter, async (req, res) => {
         role = 'vendor';
       }
     } else {
-      // Check members
+      // Check members - include status fields for active gating
       const memberResult = await query(
-        'SELECT id, email, password_hash, full_name, membership_type FROM members WHERE email = ?',
+        `SELECT id, email, password_hash, full_name, membership_type, 
+         membership_status, payment_status, subscription_end_date
+         FROM members WHERE email = ?`,
         [email.toLowerCase()]
       );
       if (memberResult.rows.length > 0) {
@@ -221,16 +371,43 @@ router.post('/login', apiLimiter, async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Calculate account status and next action
+    const statusInfo = calculateAccountStatus(user, role);
+
     // Log audit
     await logAudit({
       userType: role,
       action: 'user_login',
       resourceType: userType,
       resourceId: user.id,
-      details: { email: user.email },
+      details: { 
+        email: user.email,
+        account_status: statusInfo.account_status,
+        allowed: statusInfo.allowed,
+      },
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
+
+    // Send login notification email (only for members, not admins/vendors)
+    if (role === 'member') {
+      try {
+        const loginTime = new Date().toLocaleString('en-US', {
+          timeZone: 'Asia/Dubai',
+          dateStyle: 'full',
+          timeStyle: 'long',
+        });
+        await sendLoginNotification(
+          user.email,
+          user.full_name,
+          loginTime,
+          req.ip
+        );
+      } catch (emailError) {
+        console.error('Error sending login notification email:', emailError);
+        // Don't fail login if email fails
+      }
+    }
 
     res.json({
       success: true,
@@ -242,6 +419,9 @@ router.post('/login', apiLimiter, async (req, res) => {
         role: role,
         membershipType: user.membership_type || null,
       },
+      allowed: statusInfo.allowed,
+      account_status: statusInfo.account_status,
+      next_action: statusInfo.next_action,
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -261,7 +441,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 
     if (role === 'admin') {
       const adminResult = await query(
-        'SELECT id, email, full_name, role FROM admin_users WHERE id = ?',
+        'SELECT id, email, full_name, role, is_active FROM admin_users WHERE id = ?',
         [userId]
       );
       if (adminResult.rows.length > 0) {
@@ -269,7 +449,10 @@ router.get('/me', authenticateToken, async (req, res) => {
       }
     } else if (role === 'vendor') {
       const vendorResult = await query(
-        'SELECT id, email, vendor_name as full_name FROM vendors WHERE id = ?',
+        `SELECT id, email, vendor_name as full_name, 
+         COALESCE(vendor_status, CASE WHEN is_active = 1 THEN 'active' ELSE 'pending' END) as vendor_status,
+         payment_status, is_active
+         FROM vendors WHERE id = ?`,
         [userId]
       );
       if (vendorResult.rows.length > 0) {
@@ -277,7 +460,9 @@ router.get('/me', authenticateToken, async (req, res) => {
       }
     } else {
       const memberResult = await query(
-        'SELECT id, email, full_name, membership_type FROM members WHERE id = ?',
+        `SELECT id, email, full_name, membership_type, 
+         membership_status, payment_status, subscription_end_date
+         FROM members WHERE id = ?`,
         [userId]
       );
       if (memberResult.rows.length > 0) {
@@ -289,6 +474,9 @@ router.get('/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Calculate account status and next action
+    const statusInfo = calculateAccountStatus(user, role);
+
     res.json({
       success: true,
       user: {
@@ -298,6 +486,9 @@ router.get('/me', authenticateToken, async (req, res) => {
         role: role,
         membershipType: user.membership_type || null,
       },
+      allowed: statusInfo.allowed,
+      account_status: statusInfo.account_status,
+      next_action: statusInfo.next_action,
     });
   } catch (error) {
     console.error('Get user error:', error);

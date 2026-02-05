@@ -1,7 +1,47 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { contactAPI } from '../services/api'
 import './Footer.css'
 
 const Footer = () => {
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!email) {
+      setMessage({ type: 'error', text: 'Please enter your email address' })
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setMessage({ type: 'error', text: 'Please enter a valid email address' })
+      return
+    }
+
+    setIsSubmitting(true)
+    setMessage({ type: '', text: '' })
+
+    try {
+      const result = await contactAPI.subscribe(email)
+      
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message || 'Thank you for subscribing!' })
+        setEmail('') // Clear the input
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to subscribe. Please try again.' })
+      }
+    } catch (error) {
+      console.error('Subscription error:', error)
+      setMessage({ type: 'error', text: 'Failed to subscribe. Please try again later.' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <footer className="footer">
       <div className="footer-container">
@@ -62,14 +102,28 @@ const Footer = () => {
         <div className="footer-bottom">
           <div className="footer-newsletter">
             <h4 className="newsletter-title">Stay Connected</h4>
-            <form className="newsletter-form">
+            <form className="newsletter-form" onSubmit={handleSubmit}>
               <input
                 type="email"
                 placeholder="Enter your email"
                 className="newsletter-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
               />
-              <button type="submit" className="newsletter-button">Submit</button>
+              <button 
+                type="submit" 
+                className="newsletter-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
             </form>
+            {message.text && (
+              <p className={`newsletter-message ${message.type === 'success' ? 'newsletter-success' : 'newsletter-error'}`}>
+                {message.text}
+              </p>
+            )}
             <p className="newsletter-disclaimer">
               By signing up, I agree with the data protection policy.
             </p>

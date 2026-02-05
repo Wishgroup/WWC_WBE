@@ -136,6 +136,27 @@ export const adminAPI = {
     });
   },
 
+  // Card Issuance (Phase 3)
+  prepareCardIssuance: (memberId) => {
+    return apiRequest('/api/admin/cards/prepare', {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify({ memberId }),
+    });
+  },
+
+  confirmCardIssuance: (sessionId, cardUid) => {
+    return apiRequest('/api/admin/cards/confirm', {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify({ sessionId, cardUid }),
+    });
+  },
+
   // Vendor Analytics
   getVendorAnalytics: (vendorId = null) => {
     const url = vendorId 
@@ -166,6 +187,86 @@ export const adminAPI = {
       headers: {
         'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
       },
+    });
+  },
+
+  // Work Queue (Phase 2)
+  getWorkQueue: () => {
+    return apiRequest('/api/admin/work-queue', {
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+    });
+  },
+
+  // Bank Transfer Verification
+  getBankTransfers: (status = 'all') => {
+    return apiRequest(`/api/admin/bank-transfers?status=${status}`, {
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+    });
+  },
+
+  verifyBankTransfer: (orderId) => {
+    return apiRequest(`/api/admin/bank-transfers/${orderId}/verify`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+    });
+  },
+
+  rejectBankTransfer: (orderId, reason) => {
+    return apiRequest(`/api/admin/bank-transfers/${orderId}/reject`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify({ reason }),
+    });
+  },
+};
+
+/**
+ * Vendor API requests (Phase 4)
+ */
+export const vendorAPI = {
+  // POS Readers
+  getReaders: () => {
+    return apiRequest('/api/vendor/readers');
+  },
+
+  registerReader: (readerData) => {
+    return apiRequest('/api/vendor/readers', {
+      method: 'POST',
+      body: JSON.stringify(readerData),
+    });
+  },
+
+  // Transactions
+  getTransactions: (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    return apiRequest(`/api/vendor/transactions?${params}`);
+  },
+
+  approveApplication: (applicationId, applicationType) => {
+    return apiRequest(`/api/admin/applications/${applicationId}/approve`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify({ applicationType }),
+    });
+  },
+
+  rejectApplication: (applicationId, applicationType, reason = '') => {
+    return apiRequest(`/api/admin/applications/${applicationId}/reject`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify({ applicationType, reason }),
     });
   },
 };
@@ -263,6 +364,66 @@ export const paymentAPI = {
     return apiRequest('/api/payment/ccavenue/initiate', {
       method: 'POST',
       body: JSON.stringify(paymentData),
+    });
+  },
+
+  // Bank Transfer Payment API
+  submitBankTransfer: (formData) => {
+    const token = localStorage.getItem('token');
+    const url = `${API_BASE_URL}/api/payment/bank-transfer`;
+    
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        // Don't set Content-Type for FormData - browser will set it with boundary
+      },
+      body: formData, // FormData object
+    })
+    .then(async (response) => {
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        throw new Error(`Server returned invalid response. Status: ${response.status}`);
+      }
+      
+      if (!response.ok) {
+        const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
+        const error = new Error(errorMessage);
+        error.response = { status: response.status, data };
+        throw error;
+      }
+      
+      return data;
+    })
+    .catch((error) => {
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        const networkError = new Error('Network error: Could not connect to server. Please check if the backend is running and try again.');
+        networkError.isNetworkError = true;
+        throw networkError;
+      }
+      throw error;
+    });
+  },
+};
+
+/**
+ * Contact & Subscription API
+ */
+export const contactAPI = {
+  subscribe: (email) => {
+    return apiRequest('/api/contact/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  submitInquiry: (inquiryData) => {
+    return apiRequest('/api/contact/inquiry', {
+      method: 'POST',
+      body: JSON.stringify(inquiryData),
     });
   },
 };

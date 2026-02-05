@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from 'react'
 import { adminAPI } from '../../services/api'
+import { useNotification } from '../../hooks/useNotification'
 import './AuditLogs.css'
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [filters, setFilters] = useState({
     user_type: '',
     action: '',
     limit: 100,
   })
+  const { success, error, NotificationComponent } = useNotification()
 
   useEffect(() => {
     loadLogs()
   }, [filters])
 
-  const loadLogs = async () => {
+  const loadLogs = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       const data = await adminAPI.getAuditLogs(filters)
       setLogs(data.data || [])
-    } catch (error) {
-      console.error('Error loading audit logs:', error)
-      alert('Error loading audit logs: ' + error.message)
+      if (isRefresh) {
+        success('Audit logs refreshed successfully')
+      }
+    } catch (err) {
+      console.error('Error loading audit logs:', err)
+      error('Error loading audit logs: ' + (err.message || 'Unknown error'))
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -34,9 +45,22 @@ const AuditLogs = () => {
 
   return (
     <div className="audit-logs">
+      {NotificationComponent}
       <div className="dashboard-header">
-        <h1>Audit Logs</h1>
-        <p>Complete system audit trail for compliance and security</p>
+        <div className="header-content">
+          <div>
+            <h1>Audit Logs</h1>
+            <p>Complete system audit trail for compliance and security</p>
+          </div>
+          <button 
+            className="refresh-button" 
+            onClick={() => loadLogs(true)}
+            disabled={refreshing || loading}
+            title="Refresh audit logs"
+          >
+            {refreshing ? '⟳ Refreshing...' : '⟳ Refresh'}
+          </button>
+        </div>
       </div>
 
       <div className="filters-section">
@@ -51,7 +75,6 @@ const AuditLogs = () => {
             <option value="system">System</option>
             <option value="api">API</option>
           </select>
-          <button onClick={loadLogs} className="refresh-btn">Refresh</button>
         </div>
       </div>
 

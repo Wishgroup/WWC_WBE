@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { nfcAPI } from '../../services/api'
+import { useNotification } from '../../hooks/useNotification'
 import './NFCTestInterface.css'
 
 const NFCTestInterface = () => {
@@ -13,6 +14,7 @@ const NFCTestInterface = () => {
   })
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const { success, error, NotificationComponent } = useNotification()
 
   const handleTest = async (e) => {
     e.preventDefault()
@@ -31,11 +33,17 @@ const NFCTestInterface = () => {
         }
       )
       setResult(response)
-    } catch (error) {
+      if (response.success) {
+        success('NFC validation test completed successfully')
+      } else {
+        error('NFC validation test failed: ' + (response.error || 'Unknown error'))
+      }
+    } catch (err) {
       setResult({
         success: false,
-        error: error.message,
+        error: err.message,
       })
+      error('NFC validation test error: ' + (err.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -43,6 +51,7 @@ const NFCTestInterface = () => {
 
   return (
     <div className="nfc-test-interface">
+      {NotificationComponent}
       <div className="dashboard-header">
         <h1>NFC Validation Test Interface</h1>
         <p>Test NFC card validation with real-time fraud detection and offer calculation</p>

@@ -344,107 +344,113 @@ cpanel-build/
 - [ ] Set up SSL certificate
 - [ ] Protected .env file from public access
 - [ ] Configured firewall rules
-\`\`\`;
+\`\`\`
+`;
 
 writeFileSync(join(BUILD_DIR, 'DEPLOYMENT_INSTRUCTIONS.md'), deploymentInstructions);
 console.log('   ✅ Deployment instructions created\n');
 
 // Step 8: Create package.json for backend installation
 console.log('8️⃣  Creating backend installation script...');
-const installScript = `#!/bin/bash
-# Backend Installation Script for cPanel
-
-echo "Installing backend dependencies..."
-npm install --production
-
-echo "Setting up environment..."
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo "⚠️  Please edit .env file with your configuration"
-fi
-
-echo "Running database migration..."
-npm run migrate
-
-echo "✅ Backend setup complete!"
-echo "⚠️  Don't forget to:"
-echo "   1. Edit .env file with your credentials"
-echo "   2. Start the Node.js application in cPanel"
-`;
+const installScript = [
+  '#!/bin/bash',
+  '# Backend Installation Script for cPanel',
+  '',
+  'echo "Installing backend dependencies..."',
+  'npm install --production',
+  '',
+  'echo "Setting up environment..."',
+  'if [ ! -f .env ]; then',
+  '  cp .env.example .env',
+  '  echo "Please edit .env file with your configuration"',
+  'fi',
+  '',
+  'echo "Running database migration..."',
+  'npm run migrate',
+  '',
+  'echo "Backend setup complete!"',
+  'echo "Don\'t forget to:"',
+  'echo "   1. Edit .env file with your credentials"',
+  'echo "   2. Start the Node.js application in cPanel"'
+].join('\n');
 
 writeFileSync(join(backendBuildDir, 'install.sh'), installScript);
-// Make it executable (Unix/Linux)
-try {
-  execSync(`chmod +x "${join(backendBuildDir, 'install.sh')}"`, { stdio: 'inherit' });
-} catch (e) {
-  // Ignore on Windows
+// Make it executable (Unix/Linux) - skip on Windows
+if (process.platform !== 'win32') {
+  try {
+    const chmodCmd = 'chmod +x "' + join(backendBuildDir, 'install.sh') + '"';
+    execSync(chmodCmd, { stdio: 'inherit' });
+  } catch (e) {
+    // Ignore errors
+  }
 }
 
 console.log('   ✅ Installation script created\n');
 
 // Step 9: Create README for the build
 console.log('9️⃣  Creating build README...');
-const buildReadme = `# Wish Waves Club - cPanel Build Package
-
-This package contains everything needed to deploy Wish Waves Club to cPanel hosting (tashjeel.ae).
-
-## 📦 Package Contents
-
-- **public_html/** - Frontend React application (upload to public_html)
-- **backend/** - Node.js backend API (set up as Node.js app in cPanel)
-- **DEPLOYMENT_INSTRUCTIONS.md** - Detailed deployment guide
-
-## 🚀 Quick Deployment Steps
-
-### 1. Upload Frontend
-- Upload all files from \`public_html/\` to your cPanel \`public_html/\` directory
-- Ensure \`.htaccess\` is uploaded (may be hidden)
-
-### 2. Set Up Backend
-- In cPanel, go to **Node.js** → **Create Application**
-- Upload backend files to the application root
-- Run \`npm install\` in the Node.js app terminal
-- Set environment variables (see .env.example)
-- Run \`npm run migrate\` to create database tables
-- Start the application
-
-### 3. Configure Database
-- Create MySQL database in cPanel
-- Update .env with database credentials
-- Migration script will create all tables automatically
-
-### 4. Update API URL
-- If using subdomain for API: Update \`VITE_API_URL\` in frontend build
-- Or rebuild frontend with: \`VITE_API_URL=https://yourdomain.com/api npm run build\`
-
-## 📋 Required Environment Variables
-
-See \`backend/.env.example\` for complete list. Key variables:
-- \`DB_HOST\`, \`DB_NAME\`, \`DB_USER\`, \`DB_PASSWORD\`
-- \`JWT_SECRET\` (32+ characters)
-- \`FRONTEND_URL\` (your domain)
-- Payment gateway credentials (CC Avenue)
-
-## 🔗 Important Links
-
-- **Deployment Guide**: See DEPLOYMENT_INSTRUCTIONS.md
-- **Backend Setup**: See backend/SETUP.md
-- **Database Schema**: See backend/database/mysql-schema.sql
-
-## ⚠️ Security Notes
-
-- Change all default passwords and secrets
-- Set \`NODE_ENV=production\`
-- Configure SSL certificate
-- Protect .env file from public access
-
-## 📞 Support
-
-For deployment issues, check:
-1. DEPLOYMENT_INSTRUCTIONS.md
-2. cPanel Node.js app logs
-3. Backend error logs
-`;
+const buildReadme = [
+  '# Wish Waves Club - cPanel Build Package',
+  '',
+  'This package contains everything needed to deploy Wish Waves Club to cPanel hosting (tashjeel.ae).',
+  '',
+  '## Package Contents',
+  '',
+  '- **public_html/** - Frontend React application (upload to public_html)',
+  '- **backend/** - Node.js backend API (set up as Node.js app in cPanel)',
+  '- **DEPLOYMENT_INSTRUCTIONS.md** - Detailed deployment guide',
+  '',
+  '## Quick Deployment Steps',
+  '',
+  '### 1. Upload Frontend',
+  '- Upload all files from public_html/ to your cPanel public_html/ directory',
+  '- Ensure .htaccess is uploaded (may be hidden)',
+  '',
+  '### 2. Set Up Backend',
+  '- In cPanel, go to **Node.js** → **Create Application**',
+  '- Upload backend files to the application root',
+  '- Run npm install in the Node.js app terminal',
+  '- Set environment variables (see .env.example)',
+  '- Run npm run migrate to create database tables',
+  '- Start the application',
+  '',
+  '### 3. Configure Database',
+  '- Create MySQL database in cPanel',
+  '- Update .env with database credentials',
+  '- Migration script will create all tables automatically',
+  '',
+  '### 4. Update API URL',
+  '- If using subdomain for API: Update VITE_API_URL in frontend build',
+  '- Or rebuild frontend with: VITE_API_URL=https://yourdomain.com/api npm run build',
+  '',
+  '## Required Environment Variables',
+  '',
+  'See backend/.env.example for complete list. Key variables:',
+  '- DB_HOST, DB_NAME, DB_USER, DB_PASSWORD',
+  '- JWT_SECRET (32+ characters)',
+  '- FRONTEND_URL (your domain)',
+  '- Payment gateway credentials (CC Avenue)',
+  '',
+  '## Important Links',
+  '',
+  '- **Deployment Guide**: See DEPLOYMENT_INSTRUCTIONS.md',
+  '- **Backend Setup**: See backend/SETUP.md',
+  '- **Database Schema**: See backend/database/mysql-schema.sql',
+  '',
+  '## Security Notes',
+  '',
+  '- Change all default passwords and secrets',
+  '- Set NODE_ENV=production',
+  '- Configure SSL certificate',
+  '- Protect .env file from public access',
+  '',
+  '## Support',
+  '',
+  'For deployment issues, check:',
+  '1. DEPLOYMENT_INSTRUCTIONS.md',
+  '2. cPanel Node.js app logs',
+  '3. Backend error logs'
+].join('\n');
 
 writeFileSync(join(BUILD_DIR, 'README.md'), buildReadme);
 console.log('   ✅ Build README created\n');

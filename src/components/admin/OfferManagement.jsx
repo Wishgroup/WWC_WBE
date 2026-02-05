@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useNotification } from '../../hooks/useNotification'
 import './OfferManagement.css'
 
 const OfferManagement = () => {
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(false)
+  const { success, error, NotificationComponent } = useNotification()
 
   // Mock data for now - will integrate with API later
   useEffect(() => {
@@ -26,9 +28,11 @@ const OfferManagement = () => {
 
   return (
     <div className="offer-management">
+      {NotificationComponent}
       <div className="dashboard-header">
         <h1>Offer Management</h1>
         <p>Create and manage dynamic offers for members</p>
+        <p className="info-note">Note: Full API integration coming soon. Currently showing sample data.</p>
       </div>
 
       <div className="offers-section">

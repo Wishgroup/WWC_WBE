@@ -161,7 +161,7 @@ router.post('/webhook', async (req, res) => {
         ['completed', session.payment_intent, sessionId]
       );
 
-      // Update user payment status and activate membership
+      // Update user payment status - set to 'submitted' for admin approval (Phase 2)
       const updateResult = await query(
         `UPDATE members 
          SET payment_status = ?, payment_amount = ?, membership_status = ?, updated_at = NOW()
@@ -169,7 +169,7 @@ router.post('/webhook', async (req, res) => {
         [
           'paid',
           session.amount_total / 100, // Convert cents to dollars
-          'active',
+          'submitted', // Changed from 'active' to 'submitted' - requires admin approval
           parseInt(userId, 10),
         ]
       );
@@ -586,7 +586,7 @@ router.post('/ccavenue/response', async (req, res) => {
               formData.mobileNumber || formData.phoneNumber || '',
               addressJson,
               (formData.membershipType || 'annual').toLowerCase(),
-              'active',
+              'submitted', // Changed from 'active' to 'submitted' - requires admin approval
               'paid',
               parseFloat(responseData.amount),
               formData.idNumber || formData.passportId || '',
@@ -628,7 +628,7 @@ router.post('/ccavenue/response', async (req, res) => {
                 country: formData.country || existingAddress.country || '',
               }),
               formData.membershipType?.toLowerCase() || existingMember.membership_type,
-              'active',
+              'submitted', // Changed from 'active' to 'submitted' - requires admin approval
               'paid',
               parseFloat(responseData.amount),
               'member',

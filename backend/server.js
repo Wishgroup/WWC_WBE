@@ -7,12 +7,23 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import nfcRoutes from './routes/nfc.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
+import bankTransferRoutes from './routes/bank-transfer.js';
+import vendorRoutes from './routes/vendor.js';
+import eventsRoutes from './routes/events.js';
+import contactRoutes from './routes/contact.js';
 import { logAudit } from './services/AuditService.js';
+
+// Get __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +78,9 @@ app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve uploaded files (bank receipts)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -108,6 +122,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/nfc', nfcRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/payment', bankTransferRoutes);
+app.use('/api/vendor', vendorRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Legacy email endpoint (for existing frontend)
 app.post('/api/send-email', async (req, res) => {

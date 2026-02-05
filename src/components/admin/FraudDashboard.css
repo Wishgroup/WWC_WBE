@@ -7,6 +7,14 @@
   margin-bottom: 32px;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .dashboard-header h1 {
   font-size: 32px;
   font-weight: 700;
@@ -17,6 +25,29 @@
 .dashboard-header p {
   font-size: 16px;
   color: var(--text-secondary);
+}
+
+.refresh-button {
+  padding: 10px 20px;
+  background: #0a5d6f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #0d7a8f;
+  transform: translateY(-1px);
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .stats-grid {

@@ -15,6 +15,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
+  const [allowed, setAllowed] = useState(true)
+  const [accountStatus, setAccountStatus] = useState(null)
+  const [nextAction, setNextAction] = useState(null)
 
   useEffect(() => {
     // Check if user is logged in on mount
@@ -30,6 +33,10 @@ export const AuthProvider = ({ children }) => {
       const data = await authAPI.getCurrentUser()
       if (data.success) {
         setUser(data.user)
+        // Update status information
+        setAllowed(data.allowed !== false) // Default to true if not provided
+        setAccountStatus(data.account_status || null)
+        setNextAction(data.next_action || null)
       } else {
         // Token invalid, clear it
         logout()
@@ -60,12 +67,16 @@ export const AuthProvider = ({ children }) => {
         // #endregion
         setToken(data.token)
         setUser(data.user)
+        // Update status information from login response
+        setAllowed(data.allowed !== false)
+        setAccountStatus(data.account_status || null)
+        setNextAction(data.next_action || null)
         localStorage.setItem('token', data.token)
         
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:56',message:'Returning success',data:{userRole:data.user.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
         // #endregion
-        return { success: true, user: data.user }
+        return { success: true, user: data.user, allowed: data.allowed, account_status: data.account_status, next_action: data.next_action }
       }
       
       // #region agent log
@@ -99,6 +110,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null)
     setUser(null)
+    setAllowed(true)
+    setAccountStatus(null)
+    setNextAction(null)
     localStorage.removeItem('token')
     localStorage.removeItem('admin_api_key')
   }
@@ -114,6 +128,9 @@ export const AuthProvider = ({ children }) => {
     isAdmin: user?.role === 'admin',
     isMember: user?.role === 'member',
     isVendor: user?.role === 'vendor',
+    allowed,
+    accountStatus,
+    nextAction,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

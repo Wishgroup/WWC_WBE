@@ -1,43 +1,56 @@
 import React, { useState, useEffect } from 'react'
 import { adminAPI } from '../../services/api'
+import { useNotification } from '../../hooks/useNotification'
 import './FraudDashboard.css'
 
 const FraudDashboard = () => {
   const [stats, setStats] = useState(null)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [filters, setFilters] = useState({
     severity: '',
     resolved: '',
     limit: 50,
   })
+  const { success, error, NotificationComponent } = useNotification()
 
   useEffect(() => {
     loadData()
   }, [filters])
 
-  const loadData = async () => {
+  const loadData = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       const [statsData, logsData] = await Promise.all([
         adminAPI.getFraudStats(),
         adminAPI.getFraudLogs(filters),
       ])
       setStats(statsData.data)
       setLogs(logsData.data || [])
-    } catch (error) {
-      console.error('Error loading fraud data:', error)
+      if (isRefresh) {
+        success('Fraud data refreshed successfully')
+      }
+    } catch (err) {
+      console.error('Error loading fraud data:', err)
+      error('Error loading fraud data: ' + (err.message || 'Unknown error'))
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
   const handleResolve = async (eventId) => {
     try {
       await adminAPI.resolveFraudEvent(eventId, 'Resolved by admin')
-      loadData()
-    } catch (error) {
-      alert('Error resolving event: ' + error.message)
+      success('Fraud event resolved successfully')
+      loadData(true)
+    } catch (err) {
+      error('Error resolving event: ' + (err.message || 'Unknown error'))
     }
   }
 
@@ -56,9 +69,22 @@ const FraudDashboard = () => {
 
   return (
     <div className="fraud-dashboard">
+      {NotificationComponent}
       <div className="dashboard-header">
-        <h1>Fraud Monitoring Dashboard</h1>
-        <p>Real-time fraud detection and monitoring</p>
+        <div className="header-content">
+          <div>
+            <h1>Fraud Monitoring Dashboard</h1>
+            <p>Real-time fraud detection and monitoring</p>
+          </div>
+          <button 
+            className="refresh-button" 
+            onClick={() => loadData(true)}
+            disabled={refreshing || loading}
+            title="Refresh fraud data"
+          >
+            {refreshing ? '⟳ Refreshing...' : '⟳ Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}

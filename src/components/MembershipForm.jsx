@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { paymentAPI, authAPI } from '../services/api'
 import CreditCard from './CreditCard'
+import BankTransfer from './BankTransfer'
 import './MembershipForm.css'
 
 const MEMBERSHIP_PLANS = {
@@ -52,6 +53,7 @@ function MembershipForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState(null)
   const [userId, setUserId] = useState(null)
+  const [receiptFile, setReceiptFile] = useState(null)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -145,7 +147,11 @@ function MembershipForm() {
     }
   }
 
-  const handlePayment = async () => {
+  const handleBankTransferReceipt = (file) => {
+    setReceiptFile(file)
+  }
+
+  const handleBankTransferPayment = async (file) => {
     setIsSubmitting(true)
     setErrors({})
 
@@ -153,68 +159,43 @@ function MembershipForm() {
       const selectedPlan = MEMBERSHIP_PLANS[formData.membershipType]
       const fullName = `${formData.firstName} ${formData.lastName}`
 
-      const paymentData = {
-        membershipType: formData.membershipType,
-        amount: selectedPlan.price,
-        billingDetails: {
-          name: fullName,
-          email: formData.email,
-          phone: formData.phoneNumber,
-          address: formData.address,
-          city: formData.address.split(',')[0] || formData.address,
-          country: formData.country,
-        },
-        formData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          fullName: `${formData.firstName} ${formData.lastName}`,
-          address: formData.address,
-          country: formData.country,
-          phoneNumber: formData.phoneNumber,
-          mobileNumber: formData.phoneNumber,
-          email: formData.email,
-          idNumber: formData.idNumber,
-          idType: formData.idType,
-          passportId: formData.idNumber, // For compatibility
-          membershipType: formData.membershipType,
-          userId: userId, // Include userId if available
-        }
-      }
+      // Create FormData for file upload
+      const formDataToSend = new FormData()
+      formDataToSend.append('receipt', file)
+      formDataToSend.append('membershipType', formData.membershipType)
+      formDataToSend.append('amount', selectedPlan.price.toString())
+      formDataToSend.append('firstName', formData.firstName)
+      formDataToSend.append('lastName', formData.lastName)
+      formDataToSend.append('fullName', fullName)
+      formDataToSend.append('email', formData.email)
+      formDataToSend.append('phoneNumber', formData.phoneNumber)
+      formDataToSend.append('mobileNumber', formData.phoneNumber)
+      formDataToSend.append('address', formData.address)
+      formDataToSend.append('country', formData.country)
+      formDataToSend.append('idNumber', formData.idNumber)
+      formDataToSend.append('idType', formData.idType)
+      formDataToSend.append('userId', userId || '')
 
-      const result = await paymentAPI.initiateCCAvenuePayment(paymentData)
+      const result = await paymentAPI.submitBankTransfer(formDataToSend)
 
-      if (result.success && result.paymentUrl && result.encryptedData) {
-        // Create and submit form to CC Avenue
-        const form = document.createElement('form')
-        form.method = 'POST'
-        form.action = result.paymentUrl
-        form.style.display = 'none'
-
-        // Add required fields for CC Avenue
-        const fields = {
-          encRequest: result.encryptedData,
-          access_code: result.accessCode,
-        }
-
-        Object.entries(fields).forEach(([name, value]) => {
-          const input = document.createElement('input')
-          input.type = 'hidden'
-          input.name = name
-          input.value = value
-          form.appendChild(input)
-        })
-
-        document.body.appendChild(form)
-        form.submit()
+      if (result.success) {
+        // Redirect to success page
+        window.location.href = '/payment/success?payment_method=bank_transfer&order_id=' + result.orderId
       } else {
-        setErrors({ payment: result.error || 'Failed to initiate payment. Please try again.' })
+        setErrors({ payment: result.error || 'Failed to submit payment. Please try again.' })
         setIsSubmitting(false)
       }
     } catch (error) {
-      console.error('Payment error:', error)
+      console.error('Bank transfer payment error:', error)
       setErrors({ payment: error.message || 'An error occurred. Please try again.' })
       setIsSubmitting(false)
     }
+  }
+
+  // CC Avenue payment handler (temporarily disabled)
+  const handlePayment = async () => {
+    // CC Avenue payment is temporarily disabled
+    setErrors({ payment: 'CC Avenue payment is temporarily disabled. Please use Bank Transfer option.' })
   }
 
   const selectedPlan = MEMBERSHIP_PLANS[formData.membershipType]
@@ -455,12 +436,9 @@ function MembershipForm() {
         </div>
       )}
 
-      {/* Step 3: Payment */}
+      {/* Step 3: Payment - Bank Transfer */}
       {currentStep === 3 && (
         <div className="form-step">
-          <h2 className="step-title">Payment Details</h2>
-          <p className="step-subtitle">You will be redirected to our secure payment gateway</p>
-
           {errors.payment && (
             <div className="error-alert">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -472,36 +450,19 @@ function MembershipForm() {
             </div>
           )}
 
-          <div className="payment-summary">
-            <div className="summary-item">
-              <span>Membership Type:</span>
-              <span>{selectedPlan.name}</span>
-            </div>
-            <div className="summary-item">
-              <span>Amount:</span>
-              <span className="summary-amount">AED {selectedPlan.price.toLocaleString()}</span>
-            </div>
-            <div className="summary-item">
-              <span>Payment Method:</span>
-              <span>CC Avenue (Secure Payment Gateway)</span>
-            </div>
-          </div>
+          <BankTransfer
+            membershipType={formData.membershipType}
+            amount={selectedPlan.price}
+            onReceiptUpload={handleBankTransferReceipt}
+            onProceed={handleBankTransferPayment}
+            isSubmitting={isSubmitting}
+          />
 
-          {isSubmitting ? (
-            <div className="payment-loading">
-              <div className="spinner"></div>
-              <p>Redirecting to secure payment gateway...</p>
-            </div>
-          ) : (
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={handleBack}>
-                Back
-              </button>
-              <button type="button" className="btn-primary" onClick={handlePayment} disabled={isSubmitting}>
-                {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
-              </button>
-            </div>
-          )}
+          <div className="form-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn-secondary" onClick={handleBack} disabled={isSubmitting}>
+              Back
+            </button>
+          </div>
         </div>
       )}
     </div>

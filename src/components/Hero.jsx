@@ -1,20 +1,146 @@
-import React from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LiquidEther from './LiquidEther'
 import './Hero.css'
 
 const Hero = () => {
   const navigate = useNavigate()
+  const videoRef = useRef(null)
+  const heroRef = useRef(null)
+  const [videoHeight, setVideoHeight] = useState(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    const hero = heroRef.current
+
+    // Pause all other videos on the page (except the hero video)
+    const pauseAllOtherVideos = () => {
+      const allVideos = document.querySelectorAll('video')
+      allVideos.forEach((v) => {
+        if (v !== video && !v.paused) {
+          v.pause()
+        }
+      })
+    }
+
+    // Pause other videos immediately
+    pauseAllOtherVideos()
+
+    if (video && hero) {
+      // Ensure hero video plays
+      const playHeroVideo = async () => {
+        try {
+          if (video.paused) {
+            await video.play()
+            console.log('Hero video playing')
+          }
+        } catch (error) {
+          console.error('Video autoplay prevented:', error)
+          // Try to play on user interaction
+          const tryPlayOnInteraction = () => {
+            video.play().catch(() => {})
+            document.removeEventListener('click', tryPlayOnInteraction)
+            document.removeEventListener('touchstart', tryPlayOnInteraction)
+          }
+          document.addEventListener('click', tryPlayOnInteraction, { once: true })
+          document.addEventListener('touchstart', tryPlayOnInteraction, { once: true })
+        }
+      }
+
+      // Try to play immediately if video is ready
+      if (video.readyState >= 2) {
+        playHeroVideo()
+      }
+
+      const handleLoadedMetadata = () => {
+        // Get the video's natural dimensions
+        const naturalHeight = video.videoHeight
+        const naturalWidth = video.videoWidth
+        
+        if (naturalHeight && naturalWidth) {
+          // Calculate aspect ratio
+          const aspectRatio = naturalHeight / naturalWidth
+          
+          // Calculate height based on viewport width and video aspect ratio
+          const viewportWidth = window.innerWidth
+          const calculatedHeight = viewportWidth * aspectRatio
+          
+          // Use the calculated height to match video's display height
+          setVideoHeight(calculatedHeight)
+          hero.style.height = `${calculatedHeight}px`
+          hero.style.minHeight = `${calculatedHeight}px`
+        }
+        
+        // Play the hero video
+        playHeroVideo()
+      }
+
+      const handleResize = () => {
+        if (video.videoHeight && video.videoWidth) {
+          const naturalHeight = video.videoHeight
+          const naturalWidth = video.videoWidth
+          const aspectRatio = naturalHeight / naturalWidth
+          const viewportWidth = window.innerWidth
+          const calculatedHeight = viewportWidth * aspectRatio
+          
+          setVideoHeight(calculatedHeight)
+          hero.style.height = `${calculatedHeight}px`
+          hero.style.minHeight = `${calculatedHeight}px`
+        }
+      }
+
+      // Monitor for other videos being added to the page
+      const observer = new MutationObserver(() => {
+        pauseAllOtherVideos()
+      })
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      })
+
+      // Set up event listeners
+      if (video.readyState >= 1) {
+        // Video metadata already loaded
+        handleLoadedMetadata()
+      } else {
+        video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      }
+
+      // Play hero video when it can play
+      video.addEventListener('canplay', playHeroVideo)
+      video.addEventListener('loadeddata', playHeroVideo)
+      
+      // Handle video errors
+      video.addEventListener('error', (e) => {
+        console.error('Video error:', e)
+        console.error('Video error details:', video.error)
+      })
+
+      window.addEventListener('resize', handleResize)
+
+      return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('canplay', playHeroVideo)
+        video.removeEventListener('loadeddata', playHeroVideo)
+        window.removeEventListener('resize', handleResize)
+        observer.disconnect()
+      }
+    }
+  }, [])
+
   return (
-    <section className="hero">
+    <section className="hero" ref={heroRef}>
       <video 
+        ref={videoRef}
         className="hero-background-video"
         autoPlay
         loop
         muted
         playsInline
+        preload="auto"
       >
-        <source src="/assets/bg_video.mp4" type="video/mp4" />
+        <source src="/assets/Bg%20Video-Dxqdev7y.mp4" type="video/mp4" />
       </video>
       <div className="hero-overlay"></div>
       <div className="hero-liquid-ether">

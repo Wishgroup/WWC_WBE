@@ -14,6 +14,7 @@ import FraudDetectionEngine from './FraudDetectionEngine.js';
 import CountryRuleEngine from './CountryRuleEngine.js';
 import OfferEngine from './OfferEngine.js';
 import { logAudit } from './AuditService.js';
+import NFCCardService from './NFCCardService.js';
 
 class NFCValidationPipeline {
   /**
@@ -23,7 +24,10 @@ class NFCValidationPipeline {
    */
   async validateNFCTap(tapRequest) {
     const {
-      cardUid,
+      cardUid, // Legacy: UID-based validation
+      cardPublicId, // New: Public ID-based validation (Phase 3)
+      payload, // New: Payload from card (Phase 3)
+      signature, // New: Signature from card (Phase 3)
       vendorId,
       posReaderId,
       latitude,
@@ -43,23 +47,48 @@ class NFCValidationPipeline {
     };
 
     try {
-      // STEP 1: Card UID Validation
-      const cardValidation = await this.validateCardUID(cardUid);
-      if (!cardValidation.valid) {
-        await this.logTapResult(cardUid, vendorId, posReaderId, {
-          ...validationResult,
-          reason: cardValidation.reason,
-        });
+      // STEP 1: Card Validation (supports both UID and signature-based)
+      let cardValidation;
+      let cardUidForLogging = cardUid;
+
+      if (cardPublicId && payload && signature) {
+        // New signature-based validation (Phase 3)
+        cardValidation = await this.validateCardSignature(cardPublicId, payload, signature);
+        if (!cardValidation.valid) {
+          await this.logTapResult(cardPublicId, vendorId, posReaderId, {
+            ...validationResult,
+            reason: cardValidation.reason,
+          });
+          return {
+            ...validationResult,
+            reason: cardValidation.reason,
+          };
+        }
+        cardUidForLogging = cardValidation.cardData?.card_uid || cardPublicId;
+      } else if (cardUid) {
+        // Legacy UID-based validation (backward compatibility)
+        cardValidation = await this.validateCardUID(cardUid);
+        if (!cardValidation.valid) {
+          await this.logTapResult(cardUid, vendorId, posReaderId, {
+            ...validationResult,
+            reason: cardValidation.reason,
+          });
+          return {
+            ...validationResult,
+            reason: cardValidation.reason,
+          };
+        }
+      } else {
         return {
           ...validationResult,
-          reason: cardValidation.reason,
+          reason: 'card_identifier_required',
         };
       }
 
       const { memberId, cardData } = cardValidation;
 
       // STEP 2: Card Status Check (Active / Blocked / Expired)
-      const statusCheck = await this.checkCardStatus(cardUid, memberId);
+      const statusCheck = await this.checkCardStatus(cardUidForLogging, memberId, cardData);
       if (!statusCheck.valid) {
         await this.logTapResult(cardUid, vendorId, posReaderId, {
           ...validationResult,
@@ -204,7 +233,7 @@ class NFCValidationPipeline {
       // STEP 6: Log successful tap
       const tapLogId = await this.logNFCTap({
         memberId,
-        cardUid,
+        cardUid: cardUidForLogging,
         vendorId,
         vendorCountry: vendorData.country,
         vendorCity: vendorData.city,
@@ -243,7 +272,8 @@ class NFCValidationPipeline {
         resourceId: tapLogId,
         details: {
           memberId,
-          cardUid,
+          cardUid: cardUidForLogging,
+          cardPublicId: cardPublicId || null,
           vendorId,
           approved: true,
           offerApplied: offer ? true : false,
@@ -264,7 +294,7 @@ class NFCValidationPipeline {
       console.error('NFC validation pipeline error:', error);
       
       // Log error
-      await this.logTapResult(cardUid, vendorId, posReaderId, {
+      await this.logTapResult(cardUid || cardPublicId || 'unknown', vendorId, posReaderId, {
         ...validationResult,
         reason: 'validation_error',
         error: error.message,
@@ -279,11 +309,11 @@ class NFCValidationPipeline {
   }
 
   /**
-   * Validate Card UID
+   * Validate Card UID (Legacy method - backward compatibility)
    */
   async validateCardUID(cardUid) {
     const result = await query(
-      `SELECT id, member_id, card_status, encrypted_token 
+      `SELECT id, member_id, card_status, encrypted_token, card_public_id
        FROM nfc_cards 
        WHERE card_uid = ?`,
       [cardUid]
@@ -303,11 +333,90 @@ class NFCValidationPipeline {
   }
 
   /**
-   * Check card status
+   * Validate Card Signature (Phase 3 - New method)
    */
-  async checkCardStatus(cardUid, memberId) {
+  async validateCardSignature(cardPublicId, payload, signature) {
+    try {
+      // Get card from database
+      const card = await NFCCardService.getCardByPublicId(cardPublicId);
+
+      if (!card) {
+        return { valid: false, reason: 'card_public_id_not_found' };
+      }
+
+      // Verify signature
+      const isValid = await NFCCardService.verifyCardSignature(
+        cardPublicId,
+        payload,
+        signature
+      );
+
+      if (!isValid) {
+        return { valid: false, reason: 'invalid_signature' };
+      }
+
+      // Check if payload matches stored payload (optional additional check)
+      if (card.payload) {
+        const storedPayload = JSON.parse(card.payload);
+        // Verify key fields match
+        if (storedPayload.member_public_id !== payload.member_public_id ||
+            storedPayload.card_public_id !== payload.card_public_id) {
+          return { valid: false, reason: 'payload_mismatch' };
+        }
+      }
+
+      return {
+        valid: true,
+        memberId: card.member_id,
+        cardData: card,
+      };
+    } catch (error) {
+      console.error('Card signature validation error:', error);
+      return { valid: false, reason: 'validation_error', error: error.message };
+    }
+  }
+
+  /**
+   * Check card status
+   * Supports both UID-based (legacy) and cardData-based (Phase 3) checks
+   */
+  async checkCardStatus(cardUid, memberId, cardData = null) {
+    // If cardData is provided (from signature validation), use it
+    if (cardData) {
+      if (cardData.card_status !== 'active') {
+        return { valid: false, reason: `card_${cardData.card_status}` };
+      }
+
+      // Check expiration from payload if available
+      if (cardData.payload) {
+        try {
+          const payload = JSON.parse(cardData.payload);
+          if (payload.expires_at) {
+            const expiresAt = new Date(payload.expires_at);
+            if (expiresAt < new Date()) {
+              return { valid: false, reason: 'card_expired' };
+            }
+          }
+        } catch (error) {
+          // If payload parsing fails, fall back to database expiry_date
+        }
+      }
+
+      // Check database expiry_date as fallback
+      if (cardData.expiry_date && new Date(cardData.expiry_date) < new Date()) {
+        return { valid: false, reason: 'card_expired' };
+      }
+
+      if (cardData.blocked_at) {
+        return { valid: false, reason: 'card_blocked' };
+      }
+
+      return { valid: true };
+    }
+
+    // Legacy: Query database by UID
     const result = await query(
-      `SELECT card_status, expiry_date, blocked_at 
+      `SELECT card_status, expiry_date, blocked_at, expires_at
        FROM nfc_cards 
        WHERE card_uid = ? AND member_id = ?`,
       [cardUid, memberId]

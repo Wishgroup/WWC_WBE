@@ -50,6 +50,49 @@
   animation: fadeIn 0.5s ease-in;
 }
 
+/* Pending Verification State (Bank Transfer) */
+.payment-status.pending-verification {
+  animation: fadeIn 0.5s ease-in;
+}
+
+.verification-info {
+  background: #f0f9fa;
+  border-left: 4px solid #0a5d6f;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.verification-info p {
+  margin-bottom: 12px;
+}
+
+.verification-info p:last-child {
+  margin-bottom: 0;
+}
+
+.verification-details {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+}
+
+.verification-details p {
+  margin: 8px 0;
+  font-family: 'Courier New', monospace;
+  color: #0a5d6f;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
 .success-icon {
   width: 80px;
   height: 80px;

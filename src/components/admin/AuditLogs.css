@@ -1,3 +1,5 @@
+@import './admin-shared.css';
+
 .audit-logs {
   max-width: 1400px;
   margin: 0 auto;

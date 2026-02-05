@@ -13,9 +13,16 @@ const PaymentSuccess = () => {
   const sessionId = searchParams.get('session_id')
   const orderId = searchParams.get('order_id')
   const encResponse = searchParams.get('encResponse') || searchParams.get('encResp')
+  const paymentMethod = searchParams.get('payment_method')
 
   useEffect(() => {
     const verifyPayment = async () => {
+      // Handle Bank Transfer payment
+      if (paymentMethod === 'bank_transfer' && orderId) {
+        setPaymentStatus('pending_verification')
+        return
+      }
+
       // Handle CC Avenue payment response
       if (encResponse) {
         try {
@@ -136,6 +143,41 @@ const PaymentSuccess = () => {
               <h1>Payment Processing</h1>
               <p>Your payment is being processed. This may take a few moments.</p>
               <p>You will receive a confirmation email once your payment is confirmed.</p>
+            </div>
+          )}
+
+          {paymentStatus === 'pending_verification' && (
+            <div className="payment-status pending-verification">
+              <div className="pending-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <h1>Bank Transfer Submitted Successfully!</h1>
+              <div className="verification-info">
+                <p><strong>Your bank transfer receipt has been received.</strong></p>
+                <p>Your application is now pending verification. Our team will review your payment receipt and activate your membership.</p>
+                <div className="verification-details">
+                  <p><strong>Order ID:</strong> {orderId}</p>
+                  <p><strong>Processing Time:</strong> Usually 24-48 hours</p>
+                </div>
+                <p>You will receive an email confirmation once your payment is verified and your membership is activated.</p>
+              </div>
+              <div className="verification-actions">
+                <button 
+                  className="contact-button"
+                  onClick={() => window.location.href = 'mailto:info@wishwavesclub.com'}
+                >
+                  Contact Support
+                </button>
+                <button 
+                  className="back-button"
+                  onClick={() => navigate('/', { replace: true })}
+                >
+                  Return to Homepage
+                </button>
+              </div>
             </div>
           )}
 

@@ -1,26 +1,37 @@
 import React, { useState, useEffect } from 'react'
 import { adminAPI } from '../../services/api'
+import { useNotification } from '../../hooks/useNotification'
 import './VendorAnalytics.css'
 
 const VendorAnalytics = () => {
   const [analytics, setAnalytics] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedVendor, setSelectedVendor] = useState('')
+  const { success, error, NotificationComponent } = useNotification()
 
   useEffect(() => {
     loadAnalytics()
   }, [selectedVendor])
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       const data = await adminAPI.getVendorAnalytics(selectedVendor || null)
       setAnalytics(data.data || [])
-    } catch (error) {
-      console.error('Error loading vendor analytics:', error)
-      alert('Error loading analytics: ' + error.message)
+      if (isRefresh) {
+        success('Analytics refreshed successfully')
+      }
+    } catch (err) {
+      console.error('Error loading vendor analytics:', err)
+      error('Error loading analytics: ' + (err.message || 'Unknown error'))
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -30,9 +41,22 @@ const VendorAnalytics = () => {
 
   return (
     <div className="vendor-analytics">
+      {NotificationComponent}
       <div className="dashboard-header">
-        <h1>Vendor Analytics</h1>
-        <p>Vendor usage statistics and performance metrics</p>
+        <div className="header-content">
+          <div>
+            <h1>Vendor Analytics</h1>
+            <p>Vendor usage statistics and performance metrics</p>
+          </div>
+          <button 
+            className="refresh-button" 
+            onClick={() => loadAnalytics(true)}
+            disabled={refreshing || loading}
+            title="Refresh analytics"
+          >
+            {refreshing ? '⟳ Refreshing...' : '⟳ Refresh'}
+          </button>
+        </div>
       </div>
 
       <div className="analytics-grid">

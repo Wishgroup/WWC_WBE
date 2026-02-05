@@ -13,6 +13,7 @@ import CountryRuleEngine from '../services/CountryRuleEngine.js';
 import OfferEngine from '../services/OfferEngine.js';
 import { getAuditLogs } from '../services/AuditService.js';
 import { logAudit } from '../services/AuditService.js';
+import ApplicationsService from '../services/ApplicationsService.js';
 
 const router = express.Router();
 
@@ -221,6 +222,91 @@ router.post('/cards/reissue', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/cards/prepare
+ * Prepare card credential for issuance (Phase 3)
+ */
+router.post('/cards/prepare', async (req, res) => {
+  try {
+    const { memberId } = req.body;
+    const adminUserId = req.user?.userId || req.admin?.id;
+
+    if (!memberId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'memberId is required' 
+      });
+    }
+
+    if (!adminUserId) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Admin authentication required' 
+      });
+    }
+
+    const result = await NFCCardService.prepareCardIssuance(memberId, adminUserId);
+
+    res.json({
+      success: true,
+      message: 'Card credential prepared successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Prepare card error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Internal server error' 
+    });
+  }
+});
+
+/**
+ * POST /api/admin/cards/confirm
+ * Confirm card issuance after physical write (Phase 3)
+ */
+router.post('/cards/confirm', async (req, res) => {
+  try {
+    const { sessionId, cardUid } = req.body;
+    const adminUserId = req.user?.userId || req.admin?.id;
+
+    if (!sessionId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'sessionId is required' 
+      });
+    }
+
+    if (!cardUid) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'cardUid is required' 
+      });
+    }
+
+    if (!adminUserId) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Admin authentication required' 
+      });
+    }
+
+    const result = await NFCCardService.confirmCardIssuance(sessionId, cardUid, adminUserId);
+
+    res.json({
+      success: true,
+      message: 'Card issuance confirmed successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Confirm card error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Internal server error' 
+    });
+  }
+});
+
+/**
  * POST /api/admin/cards/report
  * Report card as lost/stolen/damaged
  */
@@ -390,6 +476,409 @@ router.post('/fraud/resolve', async (req, res) => {
   } catch (error) {
     console.error('Resolve fraud error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/work-queue
+ * Get work queue items (applications, card issuance, bank transfers)
+ */
+router.get('/work-queue', async (req, res) => {
+  try {
+    const workQueue = await ApplicationsService.getWorkQueue();
+
+    res.json({
+      success: true,
+      data: workQueue,
+    });
+  } catch (error) {
+    console.error('Work queue error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+});
+
+/**
+ * POST /api/admin/applications/:id/approve
+ * Approve a member or vendor application
+ */
+router.post('/applications/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { applicationType = 'member' } = req.body; // 'member' or 'vendor'
+    const adminUserId = req.user?.userId || req.admin?.id;
+
+    if (!adminUserId) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Admin authentication required' 
+      });
+    }
+
+    let result;
+    if (applicationType === 'vendor') {
+      result = await ApplicationsService.approveVendorApplication(id, adminUserId);
+    } else {
+      result = await ApplicationsService.approveMemberApplication(id, adminUserId);
+    }
+
+    res.json({
+      success: true,
+      message: 'Application approved successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Approve application error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Internal server error' 
+    });
+  }
+});
+
+/**
+ * POST /api/admin/applications/:id/reject
+ * Reject a member or vendor application
+ */
+router.post('/applications/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { applicationType = 'member', reason } = req.body; // 'member' or 'vendor'
+    const adminUserId = req.user?.userId || req.admin?.id;
+
+    if (!adminUserId) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Admin authentication required' 
+      });
+    }
+
+    let result;
+    if (applicationType === 'vendor') {
+      result = await ApplicationsService.rejectVendorApplication(id, adminUserId, reason);
+    } else {
+      result = await ApplicationsService.rejectMemberApplication(id, adminUserId, reason);
+    }
+
+    res.json({
+      success: true,
+      message: 'Application rejected',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Reject application error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Internal server error' 
+    });
+  }
+});
+
+/**
+ * GET /api/admin/bank-transfers
+ * Get bank transfer receipts with filtering
+ */
+router.get('/bank-transfers', async (req, res) => {
+  try {
+    const { status = 'all' } = req.query;
+    
+    let query = `
+      SELECT 
+        btr.id,
+        btr.order_id,
+        btr.receipt_path,
+        btr.receipt_filename,
+        btr.receipt_original_name,
+        btr.receipt_mime_type,
+        btr.receipt_size,
+        btr.status,
+        btr.verified_by,
+        btr.verified_at,
+        btr.rejection_reason,
+        btr.created_at,
+        ps.amount,
+        ps.membership_type,
+        ps.form_data,
+        ma.full_name as member_name,
+        ma.email as member_email
+      FROM bank_transfer_receipts btr
+      LEFT JOIN payment_sessions ps ON btr.order_id = ps.order_id
+      LEFT JOIN membership_applications ma ON btr.order_id = ma.order_id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    if (status !== 'all') {
+      query += ' AND btr.status = ?';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY btr.created_at DESC';
+    
+    const result = await query(query, params);
+    
+    // MySQL returns result.rows or result directly depending on implementation
+    const transfers = result.rows || result || [];
+    
+    res.json({
+      success: true,
+      transfers: transfers
+    });
+  } catch (error) {
+    console.error('Get bank transfers error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch bank transfers'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/bank-transfers/:orderId/verify
+ * Verify bank transfer and activate membership
+ */
+router.post('/bank-transfers/:orderId/verify', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const adminId = req.user?.id || req.user?.userId || null;
+    
+    // Get bank transfer receipt
+    const receiptResult = await query(
+      'SELECT * FROM bank_transfer_receipts WHERE order_id = ?',
+      [orderId]
+    );
+    
+    if (receiptResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bank transfer receipt not found'
+      });
+    }
+    
+    const receipt = receiptResult.rows[0];
+    
+    if (receipt.status !== 'pending_verification') {
+      return res.status(400).json({
+        success: false,
+        error: `Payment is already ${receipt.status}`
+      });
+    }
+    
+    // Update bank transfer receipt status
+    await query(
+      `UPDATE bank_transfer_receipts 
+       SET status = 'verified', verified_by = ?, verified_at = NOW() 
+       WHERE order_id = ?`,
+      [adminId, orderId]
+    );
+    
+    // Update payment session
+    await query(
+      `UPDATE payment_sessions 
+       SET payment_status = 'verified' 
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    // Update membership application
+    await query(
+      `UPDATE membership_applications 
+       SET status = 'active', payment_status = 'paid' 
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    // Get membership application details
+    const appResult = await query(
+      'SELECT * FROM membership_applications WHERE order_id = ?',
+      [orderId]
+    );
+    
+    if (appResult.rows.length > 0) {
+      const application = appResult.rows[0];
+      
+      // Update or create member account
+      const memberResult = await query(
+        'SELECT id FROM members WHERE email = ?',
+        [application.email]
+      );
+      
+      if (memberResult.rows.length > 0) {
+        // Update existing member
+        await query(
+          `UPDATE members 
+           SET membership_status = 'active', 
+               payment_status = 'paid',
+               membership_type = ?,
+               subscription_start_date = NOW(),
+               subscription_end_date = CASE 
+                 WHEN ? = 'annual' THEN DATE_ADD(NOW(), INTERVAL 1 YEAR)
+                 ELSE NULL
+               END,
+               updated_at = NOW()
+           WHERE email = ?`,
+          [application.membership_type, application.membership_type, application.email]
+        );
+      } else {
+        // Create new member (should already exist, but just in case)
+        await query(
+          `INSERT INTO members 
+           (email, full_name, first_name, last_name, mobile_number, phone, address, country, 
+            id_number, id_type, membership_type, membership_status, payment_status, role, 
+            subscription_start_date, subscription_end_date, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'paid', 'member',
+                   NOW(), 
+                   CASE WHEN ? = 'annual' THEN DATE_ADD(NOW(), INTERVAL 1 YEAR) ELSE NULL END,
+                   NOW(), NOW())`,
+          [
+            application.email,
+            application.full_name,
+            application.first_name,
+            application.last_name,
+            application.mobile_number,
+            application.phone_number,
+            application.address,
+            application.country,
+            application.id_number,
+            application.id_type,
+            application.membership_type,
+            application.membership_type
+          ]
+        );
+      }
+      
+      // Send welcome email
+      try {
+        const { sendWelcomeEmail } = await import('../services/EmailService.js');
+        await sendWelcomeEmail(
+          application.email,
+          application.full_name,
+          application.membership_type
+        );
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail the verification if email fails
+      }
+    }
+    
+    // Log audit
+    await logAudit({
+      userType: 'admin',
+      action: 'bank_transfer_verified',
+      resourceType: 'payment',
+      resourceId: orderId,
+      details: {
+        orderId,
+        verifiedBy: adminId,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    
+    res.json({
+      success: true,
+      message: 'Bank transfer verified and membership activated successfully'
+    });
+  } catch (error) {
+    console.error('Verify bank transfer error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to verify bank transfer'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/bank-transfers/:orderId/reject
+ * Reject bank transfer payment
+ */
+router.post('/bank-transfers/:orderId/reject', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user?.id || req.user?.userId || null;
+    
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Rejection reason is required'
+      });
+    }
+    
+    // Get bank transfer receipt
+    const receiptResult = await query(
+      'SELECT * FROM bank_transfer_receipts WHERE order_id = ?',
+      [orderId]
+    );
+    
+    if (receiptResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bank transfer receipt not found'
+      });
+    }
+    
+    const receipt = receiptResult.rows[0];
+    
+    if (receipt.status !== 'pending_verification') {
+      return res.status(400).json({
+        success: false,
+        error: `Payment is already ${receipt.status}`
+      });
+    }
+    
+    // Update bank transfer receipt status
+    await query(
+      `UPDATE bank_transfer_receipts 
+       SET status = 'rejected', verified_by = ?, verified_at = NOW(), rejection_reason = ? 
+       WHERE order_id = ?`,
+      [adminId, reason, orderId]
+    );
+    
+    // Update payment session
+    await query(
+      `UPDATE payment_sessions 
+       SET payment_status = 'rejected' 
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    // Update membership application
+    await query(
+      `UPDATE membership_applications 
+       SET status = 'rejected', payment_status = 'rejected' 
+       WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    // Log audit
+    await logAudit({
+      userType: 'admin',
+      action: 'bank_transfer_rejected',
+      resourceType: 'payment',
+      resourceId: orderId,
+      details: {
+        orderId,
+        rejectedBy: adminId,
+        reason,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    
+    res.json({
+      success: true,
+      message: 'Bank transfer rejected'
+    });
+  } catch (error) {
+    console.error('Reject bank transfer error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to reject bank transfer'
+    });
   }
 });
 

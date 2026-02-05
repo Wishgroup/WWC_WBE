@@ -1,11 +1,13 @@
 .hero {
   position: relative;
   min-height: 600px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 80px 24px;
   overflow: hidden;
+  width: 100%;
 }
 
 .hero-background-video {
@@ -16,6 +18,7 @@
   height: 100%;
   object-fit: cover;
   z-index: 0;
+  display: block;
 }
 
 .hero-overlay {
@@ -130,6 +133,7 @@
 @media (max-width: 768px) {
   .hero {
     min-height: 500px;
+    height: auto;
     padding: 60px 24px;
   }
 

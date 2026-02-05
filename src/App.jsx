@@ -10,6 +10,10 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import AdminDashboard from './pages/AdminDashboard'
 import MemberDashboard from './pages/MemberDashboard'
 import VendorDashboard from './pages/VendorDashboard'
+import ApplicationSubmitted from './pages/ApplicationSubmitted'
+import ApplicationPending from './pages/ApplicationPending'
+import ApplicationRejected from './pages/ApplicationRejected'
+import PaymentPending from './pages/PaymentPending'
 import ProtectedRoute from './components/ProtectedRoute'
 import PageTransition from './components/PageTransition'
 import FloatingButton from './components/FloatingButton'
@@ -30,6 +34,10 @@ function AppRoutes() {
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failed" element={<PaymentSuccess />} />
         <Route path="/payment/response" element={<PaymentSuccess />} />
+        <Route path="/application/submitted" element={<ApplicationSubmitted />} />
+        <Route path="/application/pending" element={<ApplicationPending />} />
+        <Route path="/application/rejected" element={<ApplicationRejected />} />
+        <Route path="/payment/pending" element={<PaymentPending />} />
         
         {/* Protected routes */}
         <Route 
