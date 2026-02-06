@@ -25,6 +25,7 @@
   text-align: center;
   position: relative;
   z-index: 2;
+  align-items: center; 
 }
 
 .benefits-hero-title {
@@ -33,7 +34,31 @@
   color: var(--teal-dark);
   margin-bottom: 24px;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.benefits-hero-title .scroll-reveal {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.benefits-hero-title .scroll-reveal-text {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.benefits-hero-title .word {
+  text-align: center;
 }
 
 .benefits-hero-subtitle {
@@ -42,6 +67,35 @@
   color: var(--text-primary);
   margin-bottom: 32px;
   line-height: 1.2;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.benefits-hero-subtitle .scroll-reveal {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+}
+
+.benefits-hero-subtitle .scroll-reveal-text {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 0.2em;
+}
+
+.benefits-hero-subtitle .word {
+  text-align: center;
+  display: inline-block;
 }
 
 .benefits-hero-description {
@@ -244,6 +298,11 @@
     font-size: 48px;
   }
 
+  .benefits-hero-subtitle .scroll-reveal-text {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   .benefits-hero-description {
     font-size: 18px;
   }
@@ -292,6 +351,11 @@
 
   .benefits-hero-subtitle {
     font-size: 36px;
+  }
+
+  .benefits-hero-subtitle .scroll-reveal-text {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .benefits-hero-description {

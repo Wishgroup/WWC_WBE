@@ -13,7 +13,7 @@ const CountryRules = () => {
     country_name: '',
     allowed_membership_types: ['annual', 'lifetime'],
     max_discount_percentage: 25,
-    currency: 'AED',
+    currency: 'USD',
     tax_rules: { vat_rate: 5.0 },
     compliance_restrictions: {},
     blackout_periods: {},
@@ -78,7 +78,7 @@ const CountryRules = () => {
                   type="text"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value.toUpperCase() })}
-                  placeholder="AED"
+                  placeholder="USD"
                   required
                 />
               </div>

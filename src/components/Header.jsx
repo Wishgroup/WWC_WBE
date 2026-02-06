@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import LanguageSelector from './LanguageSelector'
 import './Header.css'
 
 const Header = () => {
@@ -74,6 +75,7 @@ const Header = () => {
         </nav>
 
         <div className="header-right">
+          <LanguageSelector />
           {isAuthenticated ? (
             <>
               <button 

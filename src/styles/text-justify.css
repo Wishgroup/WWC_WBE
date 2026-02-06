@@ -1,0 +1,60 @@
+/**
+ * Global Text Justification Styles
+ * Ensures all text content is justified throughout the website
+ */
+
+/* Global paragraph justification - only if not explicitly set to center/left */
+p:not(.text-center):not(.text-left):not(.text-right):not(button p):not(.center p) {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* List items justification - only if not explicitly set */
+li:not(.text-center):not(.text-left):not(.text-right) {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* Description and text content classes */
+.description,
+.text-content,
+.content-text,
+.info-text,
+.benefit-text,
+.showcase-text,
+.intro-text p,
+.membership-description,
+.pillar-description,
+.value-program-description,
+.promotional-list li,
+.membership-subtitle,
+.section-subtitle {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* Exceptions - preserve existing alignment for UI elements */
+button,
+.btn,
+input,
+select,
+textarea,
+h1, h2, h3, h4, h5, h6,
+.nav-link,
+.menu-toggle,
+.pagination,
+.center,
+.text-center,
+.text-left,
+.text-right,
+.partner-description,
+.partner-note {
+  /* Keep existing text-align */
+}
+
+/* RTL support - right align for Arabic */
+[dir="rtl"] p:not(.text-center):not(.text-left),
+[dir="rtl"] li:not(.text-center):not(.text-left) {
+  text-align: right;
+}
+

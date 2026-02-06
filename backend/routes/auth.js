@@ -670,4 +670,97 @@ router.post('/save-personal-info', apiLimiter, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/set-password
+ * Set password for member account (after bank transfer verification)
+ * Allows members who paid via bank transfer to set their password
+ */
+router.post('/set-password', apiLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email and password are required' 
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    // Find member with verified membership
+    const memberResult = await query(
+      `SELECT id, email, membership_status, payment_status, password_hash 
+       FROM members 
+       WHERE email = ?`,
+      [email.toLowerCase()]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Member account not found. Please contact support if you believe this is an error.' 
+      });
+    }
+
+    const member = memberResult.rows[0];
+
+    // Check if password is already set
+    if (member.password_hash) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Password is already set. Use "Forgot Password" if you need to reset it.' 
+      });
+    }
+
+    // Verify membership is active (payment verified by admin)
+    if (member.membership_status !== 'active' || member.payment_status !== 'paid') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Your membership is not yet activated. Please wait for admin verification of your payment, or contact support if you have already made the payment.' 
+      });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Update password
+    await query(
+      'UPDATE members SET password_hash = ?, updated_at = NOW() WHERE email = ?',
+      [passwordHash, email.toLowerCase()]
+    );
+
+    // Log audit
+    await logAudit({
+      userType: 'member',
+      action: 'password_set',
+      resourceType: 'member',
+      resourceId: member.id,
+      details: { 
+        email: email.toLowerCase(),
+        method: 'bank_transfer_setup'
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      success: true,
+      message: 'Password set successfully. You can now login with your email and password.'
+    });
+  } catch (error) {
+    console.error('Set password error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to set password. Please try again or contact support.' 
+    });
+  }
+});
+
 export default router;

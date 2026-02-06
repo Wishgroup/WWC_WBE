@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { trackLogin } from '../utils/analytics'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import './Login.css'
@@ -39,9 +40,12 @@ const Login = () => {
       const result = await login(formData.email, formData.password, formData.userType)
       
       if (result && result.success) {
+        // Track successful login
+        trackLogin(formData.userType)
         setLoading(false)
       } else {
-        setError(result?.error || 'Login failed')
+        const errorMsg = result?.error || 'Login failed'
+        setError(errorMsg)
         setLoading(false)
       }
     } catch (err) {
@@ -98,7 +102,16 @@ const Login = () => {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <span>{error}</span>
+                  <div>
+                    <span>{error}</span>
+                    {error.includes('Invalid credentials') && formData.userType === 'member' && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        <Link to={`/set-password?email=${encodeURIComponent(formData.email)}`} style={{ color: '#0a5d6f', textDecoration: 'underline' }}>
+                          Set your password if you paid via bank transfer
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

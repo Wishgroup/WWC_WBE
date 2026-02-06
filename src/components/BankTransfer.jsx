@@ -7,7 +7,7 @@ const BANK_DETAILS = {
   accountNumber: '90101480045682000',
   cifNumber: '48004568',
   accountType: 'Current Account',
-  currency: 'US Dollar',
+  currency: 'USD',
   branchName: 'Main Branch',
   address: 'Malaaz, Huvadhumaa Goalhi, K. Male\', Maldives'
 }
@@ -75,7 +75,7 @@ function BankTransfer({ membershipType, amount, onReceiptUpload, onProceed, isSu
       <div className="bank-transfer-header">
         <h2>Bank Transfer Payment</h2>
         <p className="payment-amount">
-          Amount to Transfer: <strong>AED {amount.toLocaleString()}</strong>
+          Amount to Transfer: <strong>${amount.toLocaleString()} USD</strong>
         </p>
       </div>
 
@@ -119,7 +119,7 @@ function BankTransfer({ membershipType, amount, onReceiptUpload, onProceed, isSu
         <div className="bank-instructions">
           <h4>Instructions:</h4>
           <ol>
-            <li>Transfer the exact amount of <strong>AED {amount.toLocaleString()}</strong> to the account above</li>
+            <li>Transfer the exact amount of <strong>${amount.toLocaleString()} USD</strong> to the account above</li>
             <li>Use your name as the payment reference</li>
             <li>After completing the transfer, upload your bank receipt below</li>
             <li>Click "Proceed" to submit your application</li>
@@ -200,4 +200,5 @@ function BankTransfer({ membershipType, amount, onReceiptUpload, onProceed, isSu
 }
 
 export default BankTransfer
+
 

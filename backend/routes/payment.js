@@ -375,7 +375,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
           orderId,
           billingDetails.email,
           paymentAmount,
-          'AED',
+          'USD',
           'bank_transfer',
           'pending_bank_transfer',
           JSON.stringify(formData),
@@ -414,7 +414,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
           billingDetails.name,
           membershipType,
           paymentAmount,
-          'AED',
+          'USD',
           orderId
         );
       } catch (emailError) {
@@ -452,7 +452,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
     const paymentRequest = createPaymentRequest({
       orderId,
       amount: paymentAmount,
-      currency: 'AED',
+      currency: 'USD',
       billingName: billingDetails.name,
       billingEmail: billingDetails.email,
       billingTel: billingDetails.phone,
@@ -481,7 +481,7 @@ router.post('/ccavenue/initiate', apiLimiter, async (req, res) => {
         orderId, // Using order_id as session_id for CC Avenue
         billingDetails.email,
         paymentAmount,
-        'AED',
+        'USD',
         'card',
         'pending',
         JSON.stringify(formData), // Store form data for later processing
@@ -624,7 +624,7 @@ router.post('/ccavenue/response', async (req, res) => {
             emergencyContactJson,
             formData.paymentMethod || 'Card',
             parseFloat(responseData.amount),
-            'AED',
+            'USD',
             'completed',
             'paid',
           ]

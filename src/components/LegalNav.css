@@ -1,0 +1,65 @@
+.legal-nav {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+}
+
+.legal-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.legal-nav h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legal-nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.legal-nav-links li {
+  margin: 0;
+}
+
+.legal-nav-links a {
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.legal-nav-links a:hover {
+  color: #0a5d6f;
+  border-bottom-color: #0a5d6f;
+}
+
+.legal-nav-links a.active {
+  color: #0a5d6f;
+  border-bottom-color: #0a5d6f;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .legal-nav-links {
+    gap: 1rem;
+  }
+  
+  .legal-nav-links a {
+    font-size: 0.9rem;
+  }
+}
+

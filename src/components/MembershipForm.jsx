@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { paymentAPI, authAPI } from '../services/api'
+import { trackFormSubmit, trackMembershipSignup } from '../utils/analytics'
 import CreditCard from './CreditCard'
 import BankTransfer from './BankTransfer'
 import './MembershipForm.css'
@@ -179,6 +180,9 @@ function MembershipForm() {
       const result = await paymentAPI.submitBankTransfer(formDataToSend)
 
       if (result.success) {
+        // Track form submission and membership signup
+        trackFormSubmit('membership_form', 'bank_transfer')
+        trackMembershipSignup(formData.membershipType, 'bank_transfer')
         // Redirect to success page
         window.location.href = '/payment/success?payment_method=bank_transfer&order_id=' + result.orderId
       } else {
@@ -396,7 +400,7 @@ function MembershipForm() {
                 <div className="membership-card-header">
                   <h3>{selectedPlan.name}</h3>
                   <div className="membership-price">
-                    <span className="price-amount">AED {selectedPlan.price.toLocaleString()}</span>
+                    <span className="price-amount">${selectedPlan.price.toLocaleString()}</span>
                     <span className="price-period">/{selectedPlan.period}</span>
                   </div>
                 </div>

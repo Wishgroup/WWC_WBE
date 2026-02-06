@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import MemberSupportChat from '../components/MemberSupportChat'
 import './Support.css'
 
 const Support = () => {
   const [activeTab, setActiveTab] = useState('member-support')
+  const { user, isAuthenticated } = useAuth()
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId)
@@ -32,11 +35,22 @@ const Support = () => {
         <div className="support-content">
           <div id="member-support" className="support-section">
             <h2>Member Support</h2>
-            <p>For membership-related questions, account issues, or NFC card problems:</p>
-            <div className="support-contact">
-              <p><strong>Email:</strong> support@wishwavesclub.com</p>
-              <p><strong>Response Time:</strong> Within 24 hours</p>
-            </div>
+            {isAuthenticated && user && user.role === 'member' ? (
+              <MemberSupportChat />
+            ) : (
+              <>
+                <p>For membership-related questions, account issues, or NFC card problems:</p>
+                <div className="support-contact">
+                  <p><strong>Email:</strong> support@wishwavesclub.com</p>
+                  <p><strong>Response Time:</strong> Within 24 hours</p>
+                  <p style={{ marginTop: '1rem' }}>
+                    <Link to="/login" style={{ color: '#667eea', textDecoration: 'underline' }}>
+                      Login to access live chat support
+                    </Link>
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           <div id="faq-section" className="support-section">

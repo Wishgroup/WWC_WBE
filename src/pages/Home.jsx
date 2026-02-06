@@ -18,7 +18,7 @@ function Home() {
       <ThreePillars />
       <Memberships />
       <Features />
-      <ValueProgram />
+      {/* <ValueProgram /> */}
       <Footer />
     </div>
   )

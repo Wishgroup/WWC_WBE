@@ -48,6 +48,8 @@
   margin-left: auto;
   margin-right: auto;
   line-height: 1.6;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .section-title-wrapper {
@@ -135,6 +137,8 @@
   margin-bottom: 24px;
   line-height: 1.6;
   font-style: italic;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .membership-includes {
@@ -228,6 +232,8 @@
   padding-left: 32px;
   position: relative;
   opacity: 0.95;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .promotional-list li::before {

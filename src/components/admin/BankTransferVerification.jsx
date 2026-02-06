@@ -74,7 +74,7 @@ const BankTransferVerification = () => {
   }
 
   const formatAmount = (amount) => {
-    return `AED ${parseFloat(amount).toLocaleString()}`
+    return `$${parseFloat(amount).toLocaleString()} USD`
   }
 
   const getReceiptUrl = (receiptPath) => {
@@ -241,4 +241,5 @@ const BankTransferVerification = () => {
 }
 
 export default BankTransferVerification
+
 

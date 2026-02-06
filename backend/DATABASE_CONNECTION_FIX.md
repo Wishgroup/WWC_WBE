@@ -230,3 +230,4 @@ import('./database/mysql-connection.js').then(async (module) => {
 - Verify database user has proper permissions
 - Ensure database exists in cPanel
 
+

@@ -335,6 +335,13 @@ export const authAPI = {
       body: JSON.stringify(personalInfo),
     });
   },
+
+  setPassword: (email, password) => {
+    return apiRequest('/api/auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
 };
 
 /**
@@ -425,6 +432,50 @@ export const contactAPI = {
       method: 'POST',
       body: JSON.stringify(inquiryData),
     });
+  },
+};
+
+/**
+ * Support Chat API
+ */
+export const supportAPI = {
+  // Create a new support ticket
+  createTicket: (subject, description) => {
+    return apiRequest('/api/support/tickets', {
+      method: 'POST',
+      body: JSON.stringify({ subject, description }),
+    });
+  },
+
+  // Get all tickets (for member: their tickets, for admin: all tickets)
+  getTickets: () => {
+    return apiRequest('/api/support/tickets');
+  },
+
+  // Get a specific ticket with messages
+  getTicket: (ticketId) => {
+    return apiRequest(`/api/support/tickets/${ticketId}`);
+  },
+
+  // Send a message in a ticket
+  sendMessage: (ticketId, message) => {
+    return apiRequest(`/api/support/tickets/${ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  },
+
+  // Update ticket status (Admin only)
+  updateTicketStatus: (ticketId, status, notes) => {
+    return apiRequest(`/api/support/tickets/${ticketId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
+    });
+  },
+
+  // Get support statistics (Admin only)
+  getStats: () => {
+    return apiRequest('/api/support/stats');
   },
 };
 

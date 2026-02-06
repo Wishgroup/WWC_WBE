@@ -97,17 +97,32 @@ export const sendWelcomeEmail = async (userEmail, userName, membershipType) => {
                         <li>Email: ${userEmail}</li>
                       </ul>
                       
+                      <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                        <p style="color: #856404; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">
+                          🔐 Set Your Password
+                        </p>
+                        <p style="color: #856404; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">
+                          To access your member dashboard, please set your password first. Click the button below to create your secure password.
+                        </p>
+                        <div style="text-align: center; margin: 15px 0 0 0;">
+                          <a href="${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/set-password?email=${encodeURIComponent(userEmail)}" 
+                             style="display: inline-block; background-color: #ffc107; color: #000000; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                            Set Your Password
+                          </a>
+                        </div>
+                      </div>
+                      
                       <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 30px 0 20px 0;">
                         <strong>What's Next?</strong>
                       </p>
                       <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                        Log in to your member dashboard to explore exclusive offers, upcoming events, and manage your membership. Your journey into the oceanic lifestyle begins now!
+                        Once you've set your password, you can log in to your member dashboard to explore exclusive offers, upcoming events, and manage your membership. Your journey into the oceanic lifestyle begins now!
                       </p>
                       
                       <div style="text-align: center; margin: 40px 0 20px 0;">
-                        <a href="${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/member/dashboard" 
+                        <a href="${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/login" 
                            style="display: inline-block; background-color: #0a5d6f; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                          Access Member Dashboard
+                          Login to Dashboard
                         </a>
                       </div>
                     </td>
@@ -147,10 +162,15 @@ Your Membership Details:
 - Status: Active
 - Email: ${userEmail}
 
-What's Next?
-Log in to your member dashboard to explore exclusive offers, upcoming events, and manage your membership. Your journey into the oceanic lifestyle begins now!
+🔐 Set Your Password
+To access your member dashboard, please set your password first. Use the link below to create your secure password.
 
-Access your dashboard: ${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/member/dashboard
+Set Your Password: ${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/set-password?email=${encodeURIComponent(userEmail)}
+
+What's Next?
+Once you've set your password, you can log in to your member dashboard to explore exclusive offers, upcoming events, and manage your membership. Your journey into the oceanic lifestyle begins now!
+
+Login: ${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/login
 
 Wish Waves Club
 If you have any questions, please contact us at info@wishgroup.ae

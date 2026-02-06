@@ -27,6 +27,8 @@
   line-height: 1.8;
   color: var(--gray-dark);
   margin-bottom: 40px;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .value-program-features {

@@ -192,7 +192,7 @@ export function createPaymentRequest(paymentData) {
     const {
       orderId,
       amount,
-      currency = 'AED',
+      currency = 'USD',
       billingName,
       billingEmail,
       billingTel,

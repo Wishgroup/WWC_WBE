@@ -6,7 +6,6 @@ const MembershipBenefits = () => {
   const lifetimeBenefits = {
     fee: {
       usd: 'USD 1,000',
-      aed: 'Approx. AED 3,700'
     },
     commitment: 'One-time payment | Lifetime access',
     description: 'The Lifetime Membership is designed for individuals seeking enduring value, exclusivity, and access to a curated ecosystem of premium lifestyle, travel, and investment-linked benefits.',
@@ -65,7 +64,6 @@ const MembershipBenefits = () => {
   const annualBenefits = {
     fee: {
       usd: 'USD 100',
-      aed: 'Approx. AED 370',
       period: 'per annum'
     },
     description: 'As a valued Annual Member, you will enjoy flexible access to exclusive experiences, lifestyle privileges, and long-term value-added benefits, including:',
@@ -123,9 +121,6 @@ const MembershipBenefits = () => {
             <h3 className="membership-fee-title">Membership Fee</h3>
             <div className="membership-fee-amount">
               <span className="fee-primary">{benefits.fee.usd}</span>
-              {benefits.fee.aed && (
-                <span className="fee-secondary">({benefits.fee.aed})</span>
-              )}
               {benefits.fee.period && (
                 <span className="fee-period"> {benefits.fee.period}</span>
               )}

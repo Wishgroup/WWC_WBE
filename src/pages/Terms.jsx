@@ -42,8 +42,8 @@ const Terms = () => {
           <section className="policy-section">
             <h2>4. Membership Payments</h2>
             <div className="payment-info">
-              <p><strong>Annual Membership:</strong> USD 100 / AED 370</p>
-              <p><strong>Lifetime Membership:</strong> USD 1,000 / AED 3,700</p>
+              <p><strong>Annual Membership:</strong> USD 100</p>
+              <p><strong>Lifetime Membership:</strong> USD 1,000</p>
             </div>
             <ul>
               <li>Payments are processed via <strong>Stripe or CC Avenue</strong>. WWC does not store full card details.</li>

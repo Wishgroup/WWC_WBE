@@ -11,14 +11,18 @@ import NFCTestInterface from '../components/admin/NFCTestInterface'
 import AuditLogs from '../components/admin/AuditLogs'
 import WorkQueue from '../components/admin/WorkQueue'
 import BankTransferVerification from '../components/admin/BankTransferVerification'
+import SupportTickets from '../components/admin/SupportTickets'
+import GoogleAnalytics from '../components/admin/GoogleAnalytics'
 import './AdminDashboard.css'
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('work-queue')
+  const [activeTab, setActiveTab] = useState('analytics')
   const navigate = useNavigate()
 
   const tabs = [
+    { id: 'analytics', label: 'Analytics', icon: '📊' },
     { id: 'work-queue', label: 'Work Queue', icon: '📋' },
+    { id: 'support-tickets', label: 'Support Tickets', icon: '💬' },
     { id: 'bank-transfers', label: 'Bank Transfers', icon: '🏦' },
     { id: 'fraud', label: 'Fraud Monitoring', icon: '🛡️' },
     { id: 'cards', label: 'Card Management', icon: '💳' },
@@ -31,8 +35,12 @@ const AdminDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'analytics':
+        return <GoogleAnalytics />
       case 'work-queue':
         return <WorkQueue />
+      case 'support-tickets':
+        return <SupportTickets />
       case 'bank-transfers':
         return <BankTransferVerification />
       case 'fraud':
@@ -50,7 +58,7 @@ const AdminDashboard = () => {
       case 'audit':
         return <AuditLogs />
       default:
-        return <WorkQueue />
+        return <GoogleAnalytics />
     }
   }
 

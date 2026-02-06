@@ -31,6 +31,19 @@ body {
   background-color: var(--off-white);
   line-height: 1.6;
   scroll-behavior: smooth;
+  text-align: justify;
+}
+
+/* Paragraphs and text content - justified */
+p {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* Lists - justified */
+li {
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 html {

@@ -68,9 +68,9 @@ async function sendEmailNotification(template, recipient, data) {
         Your redemption has been processed successfully.
         
         Invoice ID: ${data.invoice_id}
-        Amount: AED ${data.amount}
-        Discount: AED ${data.discount_amount || 0}
-        Final Amount: AED ${data.final_amount}
+        Amount: $${data.amount} USD
+        Discount: $${data.discount_amount || 0} USD
+        Final Amount: $${data.final_amount} USD
         Vendor: ${data.vendor_name}
         
         Thank you for using Wish Waves Club!
@@ -118,7 +118,7 @@ async function sendSMSNotification(template, recipient, data) {
 function getSMSMessage(template, data) {
   switch (template) {
     case 'redeem_success':
-      return `WWC: Redemption confirmed. Invoice ${data.invoice_id}, Amount: AED ${data.final_amount}. Thank you!`;
+      return `WWC: Redemption confirmed. Invoice ${data.invoice_id}, Amount: $${data.final_amount} USD. Thank you!`;
     
     case 'event_checkin':
       return `WWC: Check-in confirmed for ${data.event_name}. See you there!`;
@@ -154,6 +154,7 @@ export default {
   processNotifications,
   startWorker,
 };
+
 
 
 

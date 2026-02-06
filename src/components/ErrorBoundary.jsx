@@ -7,10 +7,19 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    // Don't show error UI for ERR_BLOCKED_BY_CLIENT (browser extensions)
+    if (error?.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
+      return { hasError: false, error: null }
+    }
     return { hasError: true, error }
   }
 
   componentDidCatch(error, errorInfo) {
+    // Ignore ERR_BLOCKED_BY_CLIENT errors (browser extensions)
+    if (error?.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
+      console.warn('Resource blocked by browser extension, ignoring:', error.message)
+      return
+    }
     console.error('ErrorBoundary caught an error:', error, errorInfo)
   }
 

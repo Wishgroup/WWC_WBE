@@ -67,6 +67,8 @@
   font-size: 16px;
   line-height: 1.8;
   color: var(--gray-dark);
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 @media (max-width: 768px) {

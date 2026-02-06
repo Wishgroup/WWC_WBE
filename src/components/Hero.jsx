@@ -140,7 +140,8 @@ const Hero = () => {
         playsInline
         preload="auto"
       >
-        <source src="/assets/Bg%20Video-Dxqdev7y.mp4" type="video/mp4" />
+        <source src="/assets/Bg%20Video-Dxqdev7y.webm" type="video/webm" />
+        
       </video>
       <div className="hero-overlay"></div>
       <div className="hero-liquid-ether">

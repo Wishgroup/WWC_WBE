@@ -30,6 +30,8 @@
 
 .intro-text p {
   margin-bottom: 24px;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .intro-statements {

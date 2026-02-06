@@ -37,7 +37,7 @@ const VendorDashboard = () => {
         vendorName: user?.fullName || 'Vendor',
         vendorCode: 'VENDOR_TEST_001',
         location: 'Dubai, UAE',
-        currency: 'AED',
+        currency: 'USD',
         status: 'active',
         totalTaps: 156,
         approvedTaps: 142,

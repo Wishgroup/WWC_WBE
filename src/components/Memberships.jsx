@@ -107,8 +107,8 @@ const Memberships = () => {
             <h3 className="promotional-title">Exclusive Promotional Benefits</h3>
             <ul className="promotional-list">
               <li>Founding Lifetime Membership at USD 100 (first 1,000 members)</li>
-              <li>Maldives Tour for first 100 Annual Members (before January 25, 2026)</li>
-              <li>Maldives Tour for first 100 Lifetime Members (before January 25, 2026)</li>
+              <li>Maldives Tour for first 100 Annual Members (before February 25, 2026)</li>
+              <li>Maldives Tour for first 100 Lifetime Members (before February 25, 2026)</li>
               <li>Valentine's Day Celebration Event for two in Dubai (first 100 members)</li>
             </ul>
           </div>

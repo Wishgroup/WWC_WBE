@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { paymentAPI } from '../services/api'
+import { trackPaymentComplete, trackMembershipSignup } from '../utils/analytics'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import './PaymentSuccess.css'
@@ -39,6 +40,11 @@ const PaymentSuccess = () => {
           
           if (result.success && result.orderStatus === 'Success') {
             setPaymentStatus('success')
+            // Track conversion
+            const membershipType = result.membershipType || 'annual'
+            const amount = result.amount || 0
+            trackPaymentComplete(membershipType, amount, 'USD', 'ccavenue')
+            trackMembershipSignup(membershipType, 'ccavenue')
             setTimeout(() => {
               navigate('/member/dashboard', { replace: true })
             }, 5000)

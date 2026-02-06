@@ -175,7 +175,7 @@ const WorkQueue = () => {
                       <td>{app.name}</td>
                       <td>{app.email}</td>
                       <td>{app.membership_type || 'N/A'}</td>
-                      <td>{app.amount ? `AED ${app.amount}` : 'N/A'}</td>
+                      <td>{app.amount ? `$${app.amount} USD` : 'N/A'}</td>
                       <td>
                         <span className={`status-badge ${app.payment_status}`}>
                           {app.payment_status || 'pending'}
@@ -224,7 +224,7 @@ const WorkQueue = () => {
                       <td>{app.name}</td>
                       <td>{app.email}</td>
                       <td>{app.membership_type || 'N/A'}</td>
-                      <td>{app.amount ? `AED ${app.amount}` : 'N/A'}</td>
+                      <td>{app.amount ? `$${app.amount} USD` : 'N/A'}</td>
                       <td>
                         <span className={`status-badge ${app.payment_status}`}>
                           {app.payment_status || 'pending'}
@@ -306,7 +306,7 @@ const WorkQueue = () => {
                     <tr key={transfer.id}>
                       <td>{transfer.order_id}</td>
                       <td>{transfer.email}</td>
-                      <td>{transfer.amount ? `AED ${transfer.amount}` : 'N/A'}</td>
+                      <td>{transfer.amount ? `$${transfer.amount} USD` : 'N/A'}</td>
                       <td>
                         <span className={`status-badge ${transfer.payment_status}`}>
                           {transfer.payment_status}

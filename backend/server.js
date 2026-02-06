@@ -19,6 +19,8 @@ import bankTransferRoutes from './routes/bank-transfer.js';
 import vendorRoutes from './routes/vendor.js';
 import eventsRoutes from './routes/events.js';
 import contactRoutes from './routes/contact.js';
+import supportRoutes from './routes/support.js';
+import analyticsRoutes from './routes/analytics.js';
 import { logAudit } from './services/AuditService.js';
 
 // Get __dirname for ES modules
@@ -126,6 +128,8 @@ app.use('/api/payment', bankTransferRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 
 // Legacy email endpoint (for existing frontend)
 app.post('/api/send-email', async (req, res) => {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Join from './pages/Join'
@@ -14,12 +14,27 @@ import ApplicationSubmitted from './pages/ApplicationSubmitted'
 import ApplicationPending from './pages/ApplicationPending'
 import ApplicationRejected from './pages/ApplicationRejected'
 import PaymentPending from './pages/PaymentPending'
+import Support from './pages/Support'
+import SetPassword from './pages/SetPassword'
+// Use dynamic imports to avoid ad blockers blocking files with "Privacy" or "Cookie" in name
+import TermsOfUse from './pages/TermsOfUse'
+import Security from './pages/Security'
+
+// Lazy load privacy and cookie pages to avoid ad blocker issues
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
 import ProtectedRoute from './components/ProtectedRoute'
 import PageTransition from './components/PageTransition'
 import FloatingButton from './components/FloatingButton'
+import { usePageTracking } from './hooks/usePageTracking'
+import { initGA } from './utils/analytics'
+import { getLanguage } from './utils/i18n'
 import './App.css'
 
 function AppRoutes() {
+  // Track page views - wrapped in Router context
+  usePageTracking()
+
   return (
     <PageTransition>
       <Routes>
@@ -38,6 +53,26 @@ function AppRoutes() {
         <Route path="/application/pending" element={<ApplicationPending />} />
         <Route path="/application/rejected" element={<ApplicationRejected />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route 
+          path="/privacy-policy" 
+          element={
+            <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+              <PrivacyPolicy />
+            </Suspense>
+          } 
+        />
+        <Route path="/security" element={<Security />} />
+        <Route 
+          path="/cookie-policy" 
+          element={
+            <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+              <CookiePolicy />
+            </Suspense>
+          } 
+        />
         
         {/* Protected routes */}
         <Route 
@@ -73,6 +108,34 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize Google Analytics
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID || localStorage.getItem('ga_measurement_id')
+    if (gaId && gaId !== 'G-PLACEHOLDER') {
+      initGA(gaId)
+    }
+    
+    // Set RTL for Arabic
+    const lang = getLanguage()
+    if (lang === 'ar') {
+      document.documentElement.dir = 'rtl'
+    } else {
+      document.documentElement.dir = 'ltr'
+    }
+    
+    // Listen for language changes
+    const handleLanguageChange = () => {
+      const currentLang = getLanguage()
+      document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr'
+      document.documentElement.lang = currentLang
+    }
+    
+    window.addEventListener('languagechange', handleLanguageChange)
+    return () => {
+      window.removeEventListener('languagechange', handleLanguageChange)
+    }
+  }, [])
+
   return (
     <Router>
       <AppRoutes />

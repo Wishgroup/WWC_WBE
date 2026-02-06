@@ -108,3 +108,4 @@ async function checkDatabaseConfig() {
 
 checkDatabaseConfig().catch(console.error);
 
+

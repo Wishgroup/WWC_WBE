@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { contactAPI } from '../services/api'
 import './Footer.css'
 
@@ -58,18 +59,18 @@ const Footer = () => {
             <div className="footer-column">
               <h4 className="footer-heading">Support</h4>
               <ul className="footer-list">
-                <li><a href="#member-support">Member Support</a></li>
-                <li><a href="#order-status">Order Status</a></li>
-                <li><a href="#rejoin">Rejoin WWC</a></li>
-                <li><a href="#login">Member Login</a></li>
-                <li><a href="#community">WWC Community</a></li>
+                <li><Link to="/support">Member Support</Link></li>
+                <li><Link to="/member/dashboard">Order Status</Link></li>
+                <li><Link to="/rejoin">Rejoin WWC</Link></li>
+                <li><Link to="/login">Member Login</Link></li>
+                <li><Link to="/community">WWC Community</Link></li>
               </ul>
             </div>
 
             <div className="footer-column">
               <h4 className="footer-heading">Company</h4>
               <ul className="footer-list">
-                <li><a href="#support">Support</a></li>
+                <li><Link to="/support">Support</Link></li>
                 <li><a href="#careers">Careers</a></li>
                 <li><a href="#mission">Our Mission</a></li>
                 <li><a href="#press">Press Center</a></li>
@@ -79,21 +80,21 @@ const Footer = () => {
             <div className="footer-column">
               <h4 className="footer-heading">Legal</h4>
               <ul className="footer-list">
-                <li><a href="#terms">Terms of Use</a></li>
-                <li><a href="#privacy">Privacy Policy</a></li>
-                <li><a href="#security">Security</a></li>
-                <li><a href="#cookies">Cookie Policy</a></li>
+                <li><Link to="/terms-of-use">Terms of Use</Link></li>
+                <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+                <li><Link to="/security">Security</Link></li>
+                <li><Link to="/cookie-policy">Cookie Policy</Link></li>
               </ul>
             </div>
 
             <div className="footer-column">
               <h4 className="footer-heading">Join WWC</h4>
               <ul className="footer-list">
-                <li><a href="#get-wwc">Get WWC</a></li>
-                <li><a href="#refer">Refer a Friend</a></li>
-                <li><a href="#gift">Gift Membership</a></li>
-                <li><a href="#corporate">Corporate Gifting</a></li>
-                <li><a href="#student">Student Discount</a></li>
+                {/* <li><Link to="/join">Get WWC</Link></li> */}
+                <li><Link to="/refer">Refer a Friend</Link></li>
+                <li><Link to="/gift">Gift Membership</Link></li>
+                <li><Link to="/corporate">Corporate Gifting</Link></li>
+                {/* <li><Link to="/student">Student Discount</Link></li> */}
               </ul>
             </div>
           </div>
