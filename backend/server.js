@@ -36,33 +36,24 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - more permissive in development
+// CORS configuration - in production allow any origin so cPanel health check and API clients work
 const corsOptions = {
   origin: function (origin, callback) {
-    // In development, allow all localhost origins
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-    }
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (cPanel health check, curl, mobile apps)
     if (!origin) return callback(null, true);
-    
-    // List of allowed origins for production
+    // In production, allow all origins (cPanel checks from its own origin; frontend from FRONTEND_URL)
+    if (process.env.NODE_ENV === 'production') return callback(null, true);
+    // In development, allow localhost
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:3000',
       'http://localhost:5175',
-    ].filter(Boolean); // Remove undefined values
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    ].filter(Boolean);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -165,10 +156,9 @@ app.use((req, res) => {
   });
 });
 
-// Error handling middleware
+// Error handling middleware - never throw so we always return JSON (not HTML)
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  
   logAudit({
     userType: 'system',
     action: 'server_error',
@@ -180,7 +170,7 @@ app.use((err, req, res, next) => {
     },
     ipAddress: req.ip,
     userAgent: req.get('user-agent'),
-  });
+  }).catch(() => {}); // do not let audit failure cause another 500
 
   res.status(err.status || 500).json({
     error: 'Internal Server Error',

@@ -1,0 +1,8 @@
+.card-issuance { padding: 1rem; }
+.card-issuance-form { margin: 1rem 0; }
+.card-issuance-form label { display: block; margin-bottom: 0.25rem; }
+.card-issuance-form input { margin-right: 0.5rem; padding: 0.5rem; width: 200px; }
+.card-issuance-form button { padding: 0.5rem 1rem; background: var(--primary, #1a4d4d); color: #fff; border: none; cursor: pointer; }
+.card-issuance-prepared { margin-top: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 8px; }
+.card-issuance-message { color: green; margin-top: 0.5rem; }
+.card-issuance-error { color: #c00; margin-top: 0.5rem; }

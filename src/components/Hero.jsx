@@ -53,25 +53,23 @@ const Hero = () => {
       }
 
       const handleLoadedMetadata = () => {
-        // Get the video's natural dimensions
         const naturalHeight = video.videoHeight
         const naturalWidth = video.videoWidth
-        
+
         if (naturalHeight && naturalWidth) {
-          // Calculate aspect ratio
           const aspectRatio = naturalHeight / naturalWidth
-          
-          // Calculate height based on viewport width and video aspect ratio
           const viewportWidth = window.innerWidth
-          const calculatedHeight = viewportWidth * aspectRatio
-          
-          // Use the calculated height to match video's display height
+          let calculatedHeight = viewportWidth * aspectRatio
+          const isMobile = viewportWidth <= 768
+          if (isMobile) {
+            const maxHeight = Math.round(window.innerHeight * 0.9)
+            calculatedHeight = Math.min(calculatedHeight, maxHeight)
+          }
           setVideoHeight(calculatedHeight)
           hero.style.height = `${calculatedHeight}px`
           hero.style.minHeight = `${calculatedHeight}px`
         }
-        
-        // Play the hero video
+
         playHeroVideo()
       }
 
@@ -81,8 +79,12 @@ const Hero = () => {
           const naturalWidth = video.videoWidth
           const aspectRatio = naturalHeight / naturalWidth
           const viewportWidth = window.innerWidth
-          const calculatedHeight = viewportWidth * aspectRatio
-          
+          let calculatedHeight = viewportWidth * aspectRatio
+          const isMobile = viewportWidth <= 768
+          if (isMobile) {
+            const maxHeight = Math.round(window.innerHeight * 0.9)
+            calculatedHeight = Math.min(calculatedHeight, maxHeight)
+          }
           setVideoHeight(calculatedHeight)
           hero.style.height = `${calculatedHeight}px`
           hero.style.minHeight = `${calculatedHeight}px`

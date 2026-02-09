@@ -1,0 +1,10 @@
+backend
+node_modules
+.git
+dist
+*.local
+cpanel-build
+.env
+.env.*
+*.md
+*.log

@@ -1,14 +1,13 @@
 -- Phase 4 Migration: NFC Validate/Redeem with POS Device Auth
 -- Adds redemptions table and POS device authentication
 
--- Add device authentication fields to pos_readers
-ALTER TABLE pos_readers 
-ADD COLUMN IF NOT EXISTS device_key_hash VARCHAR(255) COMMENT 'Hashed device key for authentication',
-ADD COLUMN IF NOT EXISTS device_name VARCHAR(255) COMMENT 'Device friendly name',
-ADD COLUMN IF NOT EXISTS device_type VARCHAR(50) DEFAULT 'mini-pc' COMMENT 'android, mini-pc';
+-- Add device authentication fields to pos_readers (one per statement for MySQL 5.7)
+ALTER TABLE pos_readers ADD COLUMN device_key_hash VARCHAR(255) COMMENT 'Hashed device key for authentication';
+ALTER TABLE pos_readers ADD COLUMN device_name VARCHAR(255) COMMENT 'Device friendly name';
+ALTER TABLE pos_readers ADD COLUMN device_type VARCHAR(50) DEFAULT 'mini-pc' COMMENT 'android, mini-pc';
 
--- Create index on device_key_hash for fast lookups
-CREATE INDEX IF NOT EXISTS idx_pos_readers_device_key ON pos_readers(device_key_hash);
+-- Create index on device_key_hash for fast lookups (plain CREATE INDEX for MySQL 5.7 compatibility)
+CREATE INDEX idx_pos_readers_device_key ON pos_readers(device_key_hash);
 
 -- Create redemptions table (idempotent via unique constraint)
 CREATE TABLE IF NOT EXISTS redemptions (
@@ -35,12 +34,11 @@ CREATE TABLE IF NOT EXISTS redemptions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Extend nfc_tap_logs with validation_type and invoice_id
-ALTER TABLE nfc_tap_logs 
-ADD COLUMN IF NOT EXISTS validation_type VARCHAR(50) DEFAULT 'validate' COMMENT 'validate, redeem',
-ADD COLUMN IF NOT EXISTS invoice_id VARCHAR(255) NULL COMMENT 'Invoice ID for redemptions';
+ALTER TABLE nfc_tap_logs ADD COLUMN validation_type VARCHAR(50) DEFAULT 'validate' COMMENT 'validate, redeem';
+ALTER TABLE nfc_tap_logs ADD COLUMN invoice_id VARCHAR(255) NULL COMMENT 'Invoice ID for redemptions';
 
 -- Create index on validation_type
-CREATE INDEX IF NOT EXISTS idx_nfc_tap_logs_validation_type ON nfc_tap_logs(validation_type);
+CREATE INDEX idx_nfc_tap_logs_validation_type ON nfc_tap_logs(validation_type);
 
 
 

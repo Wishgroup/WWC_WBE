@@ -1,0 +1,55 @@
+.application-status-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.application-status-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.application-status-card {
+  max-width: 480px;
+  padding: 2rem;
+  text-align: center;
+  background: var(--card-bg, #fff);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.application-status-card--rejected {
+  border-left: 4px solid #c53030;
+}
+
+.application-status-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.application-status-card p {
+  color: var(--text-secondary, #555);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.application-status-link {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.5rem 1rem;
+  color: var(--primary, #1a4d4d);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.application-status-link:hover {
+  text-decoration: underline;
+}
+
+.application-status-link-secondary {
+  color: var(--text-secondary, #555);
+}

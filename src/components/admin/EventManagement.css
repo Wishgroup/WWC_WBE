@@ -1,0 +1,267 @@
+.event-management {
+  padding: 2rem;
+}
+
+.em-loading,
+.em-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.em-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.em-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.em-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  max-width: 560px;
+}
+
+.em-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.em-btn {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.em-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.em-btn-primary {
+  background: #0a5d6f;
+  color: #fff;
+  border-color: #0a5d6f;
+}
+
+.em-btn-primary:hover:not(:disabled) {
+  background: #0d7a8f;
+}
+
+.em-btn-refresh {
+  background: #f8f9fa;
+}
+
+.em-btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+.em-table-wrap {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.em-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.em-table th,
+.em-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.em-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+}
+
+.em-table td {
+  font-size: 14px;
+  color: #555;
+}
+
+.em-table td code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.em-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.em-badge-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.em-badge-inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.em-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.em-modal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.em-modal-checkins {
+  max-width: 640px;
+}
+
+.em-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.em-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.em-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #666;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.em-modal-close:hover {
+  color: #333;
+}
+
+.em-form {
+  padding: 1.5rem;
+}
+
+.em-form-row {
+  margin-bottom: 1rem;
+}
+
+.em-form-row label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.em-form-row input[type="text"],
+.em-form-row input[type="url"],
+.em-form-row input[type="number"],
+.em-form-row input[type="datetime-local"],
+.em-form-row textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.em-form-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.em-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.em-form-row-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.em-hint {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.em-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.em-checkins-list {
+  padding: 1.5rem;
+}
+
+.em-checkins-list .em-table {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .em-form-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .em-header {
+    flex-direction: column;
+  }
+
+  .em-table th,
+  .em-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

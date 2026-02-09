@@ -5,7 +5,7 @@ import LegalNav from './LegalNav'
 import SeoJsonLd from './SeoJsonLd'
 import './LegalPage.css'
 
-const LAST_UPDATED = 'February 6, 2026'
+const LAST_UPDATED = 'February 7, 2026'
 const BASE_URL = 'https://wishwavesclub.com'
 
 const LegalPage = ({ 

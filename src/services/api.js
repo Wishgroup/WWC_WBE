@@ -226,6 +226,40 @@ export const adminAPI = {
       body: JSON.stringify({ reason }),
     });
   },
+
+  // Events (upcoming events – shown on public Events page)
+  getEvents: () => {
+    return apiRequest('/api/events/admin', {
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+    });
+  },
+  createEvent: (body) => {
+    return apiRequest('/api/events/admin', {
+      method: 'POST',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify(body),
+    });
+  },
+  updateEvent: (id, body) => {
+    return apiRequest(`/api/events/admin/${id}`, {
+      method: 'PUT',
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+      body: JSON.stringify(body),
+    });
+  },
+  getEventCheckins: (eventId, limit = 100, offset = 0) => {
+    return apiRequest(`/api/events/admin/${eventId}/checkins?limit=${limit}&offset=${offset}`, {
+      headers: {
+        'X-Admin-API-Key': localStorage.getItem('admin_api_key') || 'dev_admin_api_key_change_in_production',
+      },
+    });
+  },
 };
 
 /**
@@ -342,6 +376,20 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     });
   },
+
+  forgotPassword: (email) => {
+    return apiRequest('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword: (token, email, password) => {
+    return apiRequest('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, email, password }),
+    });
+  },
 };
 
 /**
@@ -414,6 +462,13 @@ export const paymentAPI = {
       throw error;
     });
   },
+};
+
+/**
+ * Public Events API (no auth – for Events page)
+ */
+export const eventsAPI = {
+  getUpcoming: () => apiRequest('/api/events'),
 };
 
 /**

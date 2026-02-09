@@ -13,6 +13,7 @@ import WorkQueue from '../components/admin/WorkQueue'
 import BankTransferVerification from '../components/admin/BankTransferVerification'
 import SupportTickets from '../components/admin/SupportTickets'
 import GoogleAnalytics from '../components/admin/GoogleAnalytics'
+import EventManagement from '../components/admin/EventManagement'
 import './AdminDashboard.css'
 
 const AdminDashboard = () => {
@@ -29,6 +30,7 @@ const AdminDashboard = () => {
     { id: 'vendors', label: 'Vendor Analytics', icon: '📊' },
     { id: 'offers', label: 'Offer Management', icon: '🎁' },
     { id: 'rules', label: 'Country Rules', icon: '🌍' },
+    { id: 'events', label: 'Events', icon: '📅' },
     { id: 'nfc-test', label: 'NFC Test', icon: '📱' },
     { id: 'audit', label: 'Audit Logs', icon: '📝' },
   ]
@@ -53,6 +55,8 @@ const AdminDashboard = () => {
         return <OfferManagement />
       case 'rules':
         return <CountryRules />
+      case 'events':
+        return <EventManagement />
       case 'nfc-test':
         return <NFCTestInterface />
       case 'audit':

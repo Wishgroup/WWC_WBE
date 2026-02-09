@@ -24,7 +24,7 @@ const CookiePolicy = () => {
       name: 'Wish Waves Club',
       url: baseUrl,
     },
-    dateModified: '2026-02-06',
+    dateModified: '2026-02-07',
   }
 
   return (
@@ -40,6 +40,10 @@ const CookiePolicy = () => {
           Cookies can be "persistent" (remain on your device until deleted or expired) or "session" cookies 
           (deleted when you close your browser).
         </p>
+        <div className="policy-summary">
+          <p><strong>Summary:</strong></p>
+          <p>We use essential cookies (e.g. login session), functional cookies (e.g. consent and preferences), and analytics cookies (e.g. Google Analytics). You can manage your preferences via our cookie consent banner or your browser settings. For how we use your personal data, see our <Link to="/privacy-policy">Privacy Policy</Link>.</p>
+        </div>
       </section>
 
       <section>
@@ -109,6 +113,56 @@ const CookiePolicy = () => {
           WWC does not use third-party advertising cookies, but this may change in the future. You will be notified 
           of any changes to our cookie practices.
         </p>
+
+        <h3>3.5 Cookie list (quick reference)</h3>
+        <p>
+          The table below summarizes the main cookies and similar technologies we use. You can manage your preferences 
+          at any time using our cookie consent banner (via the link in the footer or by clearing site data and revisiting).
+        </p>
+        <div className="cookie-table-wrapper">
+          <table className="cookie-table">
+            <thead>
+              <tr>
+                <th>Name / Technology</th>
+                <th>Purpose</th>
+                <th>Duration</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>JWT / localStorage (token)</td>
+                <td>Keeps you logged in; essential for member/vendor/admin sessions</td>
+                <td>Session or until logout</td>
+                <td>Essential</td>
+              </tr>
+              <tr>
+                <td>Cookie consent preferences</td>
+                <td>Stores your cookie choices (essential, functional, analytics)</td>
+                <td>Persistent (e.g. 1 year)</td>
+                <td>Functional</td>
+              </tr>
+              <tr>
+                <td>Language / locale</td>
+                <td>Remembers your language or region preference</td>
+                <td>Session or persistent</td>
+                <td>Functional</td>
+              </tr>
+              <tr>
+                <td>Google Analytics (_ga, _gid, etc.)</td>
+                <td>Anonymous usage statistics, page views, traffic sources</td>
+                <td>Up to 2 years (GA default)</td>
+                <td>Analytics</td>
+              </tr>
+              <tr>
+                <td>Payment provider cookies</td>
+                <td>Set by CC Avenue / Stripe during checkout for secure payment</td>
+                <td>Session</td>
+                <td>Essential (during payment)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section>
@@ -267,6 +321,9 @@ const CookiePolicy = () => {
         </p>
         <p>
           For more information about data protection, see our <Link to="/privacy-policy">Privacy Policy</Link>.
+        </p>
+        <p style={{ marginBottom: 0, fontSize: '0.9rem', color: '#666' }}>
+          <em>Last updated: February 7, 2026</em>
         </p>
       </section>
     </LegalPage>

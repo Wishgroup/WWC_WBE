@@ -60,7 +60,7 @@ const Footer = () => {
               <h4 className="footer-heading">Support</h4>
               <ul className="footer-list">
                 <li><Link to="/support">Member Support</Link></li>
-                <li><Link to="/member/dashboard">Order Status</Link></li>
+                <li><Link to="/order-status">Order Status</Link></li>
                 <li><Link to="/rejoin">Rejoin WWC</Link></li>
                 <li><Link to="/login">Member Login</Link></li>
                 <li><Link to="/community">WWC Community</Link></li>
@@ -71,9 +71,9 @@ const Footer = () => {
               <h4 className="footer-heading">Company</h4>
               <ul className="footer-list">
                 <li><Link to="/support">Support</Link></li>
-                <li><a href="#careers">Careers</a></li>
-                <li><a href="#mission">Our Mission</a></li>
-                <li><a href="#press">Press Center</a></li>
+                <li><Link to="/careers">Careers</Link></li>
+                <li><Link to="/mission">Our Mission</Link></li>
+                <li><Link to="/press">Press Center</Link></li>
               </ul>
             </div>
 
