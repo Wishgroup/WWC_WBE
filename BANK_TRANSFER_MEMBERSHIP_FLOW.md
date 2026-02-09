@@ -436,3 +436,4 @@ When verifying a bank transfer, admin should:
 - Customer logs in successfully
 - Customer accesses member dashboard
 
+

@@ -198,3 +198,4 @@ To add more languages:
 
 **All currency is now USD, and the website supports 6 languages!** 🌍💰
 
+

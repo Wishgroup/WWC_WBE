@@ -45,3 +45,4 @@ CREATE INDEX IF NOT EXISTS idx_nfc_tap_logs_validation_type ON nfc_tap_logs(vali
 
 
 
+

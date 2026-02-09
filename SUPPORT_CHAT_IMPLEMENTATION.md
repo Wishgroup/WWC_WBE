@@ -172,3 +172,4 @@ The frontend changes are already integrated. No additional setup required.
 - Search functionality
 - Export tickets to CSV/PDF
 
+
