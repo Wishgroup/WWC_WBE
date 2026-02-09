@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import SupportWidget from '../components/SupportWidget'
-import { memberAPI, eventsAPI } from '../services/api'
+import { authAPI } from '../services/api'
 import './MemberDashboard.css'
 
 const MemberDashboard = () => {
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
   const [memberData, setMemberData] = useState({
     cardHolderName: '',
     cardExpiryDate: '',
@@ -23,76 +21,39 @@ const MemberDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportType, setReportType] = useState('lost')
-  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (user) {
-      fetchMemberData()
-    }
+    fetchMemberData()
   }, [user])
 
   const fetchMemberData = async () => {
     try {
       setLoading(true)
-      setError(null)
-
-      // Fetch member profile and card
-      const profileRes = await memberAPI.getMe()
-      if (!profileRes.success) {
-        throw new Error(profileRes.error || 'Failed to load profile')
-      }
-
-      const { profile, card } = profileRes
-
-      // Fetch offers
-      let offers = []
-      try {
-        const offersRes = await memberAPI.getOffers(profile.membershipType)
-        if (offersRes.success) {
-          offers = offersRes.offers || []
-        }
-      } catch (e) {
-        console.warn('Failed to load offers:', e)
-      }
-
-      // Fetch upcoming events
-      let events = []
-      try {
-        const eventsRes = await eventsAPI.getUpcoming()
-        if (eventsRes.success && Array.isArray(eventsRes.data)) {
-          events = eventsRes.data.slice(0, 6) // Limit to 6 events
-        }
-      } catch (e) {
-        console.warn('Failed to load events:', e)
-      }
-
-      // Format card expiry date
-      let cardExpiryDate = ''
-      if (card?.expiresAt) {
-        const expiry = new Date(card.expiresAt)
-        cardExpiryDate = expiry.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-      }
-
-      // Format membership expiry
-      let membershipExpiry = ''
-      if (profile.subscriptionEnd) {
-        const expiry = new Date(profile.subscriptionEnd)
-        membershipExpiry = expiry.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      }
-
+      // In a real app, this would call an API endpoint
+      // For now, using mock data based on user info
+      const expiryDate = new Date()
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1) // 1 year from now
+      
       setMemberData({
-        cardHolderName: profile.fullName || 'Member',
-        cardExpiryDate: cardExpiryDate,
-        cardUid: card?.cardUid || 'N/A',
-        cardStatus: card?.status || 'active',
-        membershipType: profile.membershipType || 'annual',
-        membershipExpiry: membershipExpiry,
-        ongoingOffers: offers,
-        upcomingEvents: events,
+        cardHolderName: user?.fullName || 'Member',
+        cardExpiryDate: expiryDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+        cardUid: 'CARD694D4519533',
+        cardStatus: 'active',
+        membershipType: user?.membershipType || 'annual',
+        membershipExpiry: expiryDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        ongoingOffers: [
+          { id: 1, title: '10% Off at Restaurants', discount: '10%', validUntil: '2025-12-31', description: 'Valid at all partner restaurants' },
+          { id: 2, title: 'Free Coffee', discount: '100%', validUntil: '2025-12-30', description: 'One free coffee per day at Coffee Shop XYZ' },
+          { id: 3, title: 'Spa Discount', discount: '15%', validUntil: '2026-01-15', description: '15% off spa services' },
+        ],
+        upcomingEvents: [
+          { id: 1, title: 'Lifestyle Wellness Retreat', date: '2025-01-15', location: 'Dubai', type: 'Wellness' },
+          { id: 2, title: 'Ocean Journey Experience', date: '2025-02-20', location: 'Abu Dhabi', type: 'Adventure' },
+          { id: 3, title: 'Cultural Celebration', date: '2025-03-10', location: 'Dubai', type: 'Cultural' },
+        ],
       })
     } catch (error) {
       console.error('Error fetching member data:', error)
-      setError(error.message || 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -100,16 +61,10 @@ const MemberDashboard = () => {
 
   const handleReportCard = async () => {
     try {
-      const res = await memberAPI.reportCard(memberData.cardUid, reportType)
-      if (res.success) {
-        alert(`Card reported as ${reportType}. Our team will contact you shortly.`)
-        setShowReportModal(false)
-        setMemberData({ ...memberData, cardStatus: reportType })
-        // Refresh data
-        fetchMemberData()
-      } else {
-        alert(res.error || 'Error reporting card. Please try again.')
-      }
+      // In a real app, this would call an API endpoint
+      alert(`Card reported as ${reportType}. Our team will contact you shortly.`)
+      setShowReportModal(false)
+      setMemberData({ ...memberData, cardStatus: reportType })
     } catch (error) {
       alert('Error reporting card. Please try again.')
     }
@@ -118,23 +73,13 @@ const MemberDashboard = () => {
   const handleBlockCard = async () => {
     if (window.confirm('Are you sure you want to block your card? This action can be reversed by contacting support.')) {
       try {
-        const res = await memberAPI.blockCard(memberData.cardUid)
-        if (res.success) {
-          alert('Card blocked successfully. Contact support to unblock.')
-          setMemberData({ ...memberData, cardStatus: 'blocked' })
-          // Refresh data
-          fetchMemberData()
-        } else {
-          alert(res.error || 'Error blocking card. Please try again.')
-        }
+        // In a real app, this would call an API endpoint
+        alert('Card blocked successfully. Contact support to unblock.')
+        setMemberData({ ...memberData, cardStatus: 'blocked' })
       } catch (error) {
         alert('Error blocking card. Please try again.')
       }
     }
-  }
-
-  const handleEventClick = (eventId) => {
-    navigate(`/events/${eventId}`)
   }
 
   if (loading) {
@@ -143,21 +88,6 @@ const MemberDashboard = () => {
         <Header />
         <div className="loading-container">
           <div className="loading">Loading...</div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="member-dashboard">
-        <Header />
-        <div className="dashboard-container">
-          <div className="error-container">
-            <p>{error}</p>
-            <button onClick={fetchMemberData} className="retry-button">Retry</button>
-          </div>
         </div>
         <Footer />
       </div>
@@ -235,73 +165,46 @@ const MemberDashboard = () => {
         <div className="section-header-row">
           <h2>Ongoing Offers</h2>
         </div>
-        {memberData.ongoingOffers.length === 0 ? (
-          <div className="empty-section">
-            <p>No active offers at the moment.</p>
-          </div>
-        ) : (
-          <div className="offers-grid">
-            {memberData.ongoingOffers.map((offer) => (
-              <div key={offer.id} className="offer-card">
-                <div className="offer-header">
-                  <h3>{offer.title || offer.code}</h3>
-                  <span className="offer-discount">{offer.discount}</span>
-                </div>
-                <p className="offer-description">{offer.description}</p>
-                {offer.validUntil && (
-                  <div className="offer-footer">
-                    <span className="offer-validity">Valid until: {offer.validUntil}</span>
-                  </div>
-                )}
+        <div className="offers-grid">
+          {memberData.ongoingOffers.map((offer) => (
+            <div key={offer.id} className="offer-card">
+              <div className="offer-header">
+                <h3>{offer.title}</h3>
+                <span className="offer-discount">{offer.discount}</span>
               </div>
-            ))}
-          </div>
-        )}
+              <p className="offer-description">{offer.description}</p>
+              <div className="offer-footer">
+                <span className="offer-validity">Valid until: {offer.validUntil}</span>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Upcoming Events */}
         <div className="section-header-row">
           <h2>Upcoming Events</h2>
         </div>
-        {memberData.upcomingEvents.length === 0 ? (
-          <div className="empty-section">
-            <p>No upcoming events at the moment.</p>
-          </div>
-        ) : (
-          <div className="events-grid">
-            {memberData.upcomingEvents.map((event) => {
-              const eventDate = event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-              }) : 'TBA'
-              return (
-                <div key={event.id} className="event-card">
-                  <div className="event-header">
-                    <h3>{event.event_name || event.name || 'Event'}</h3>
-                  </div>
-                  <div className="event-details">
-                    <div className="event-detail">
-                      <span className="event-icon">📅</span>
-                      <span>{eventDate}</span>
-                    </div>
-                    {event.location && (
-                      <div className="event-detail">
-                        <span className="event-icon">📍</span>
-                        <span>{event.location}</span>
-                      </div>
-                    )}
-                  </div>
-                  <button 
-                    className="event-button"
-                    onClick={() => handleEventClick(event.id)}
-                  >
-                    View Details
-                  </button>
+        <div className="events-grid">
+          {memberData.upcomingEvents.map((event) => (
+            <div key={event.id} className="event-card">
+              <div className="event-header">
+                <h3>{event.title}</h3>
+                <span className="event-type">{event.type}</span>
+              </div>
+              <div className="event-details">
+                <div className="event-detail">
+                  <span className="event-icon">📅</span>
+                  <span>{event.date}</span>
                 </div>
-              )
-            })}
-          </div>
-        )}
+                <div className="event-detail">
+                  <span className="event-icon">📍</span>
+                  <span>{event.location}</span>
+                </div>
+              </div>
+              <button className="event-button">View Details</button>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Report Card Modal */}

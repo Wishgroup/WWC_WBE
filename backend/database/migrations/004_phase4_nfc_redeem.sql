@@ -44,3 +44,4 @@ CREATE INDEX idx_nfc_tap_logs_validation_type ON nfc_tap_logs(validation_type);
 
 
 
+

@@ -27,10 +27,19 @@ async function apiRequest(endpoint, options = {}) {
     let data;
     try {
       const text = await response.text();
+      // Check if response is HTML (likely index.html from frontend)
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('API returned HTML instead of JSON. URL:', url);
+        console.error('Response preview:', text.substring(0, 200));
+        throw new Error(`API endpoint returned HTML instead of JSON. Check if API URL is correct: ${url}. The backend may not be running or the route doesn't exist.`);
+      }
       data = text ? JSON.parse(text) : {};
     } catch (parseError) {
       console.error('Failed to parse response as JSON:', parseError);
-      throw new Error(`Server returned invalid response. Status: ${response.status}`);
+      console.error('Response URL:', url);
+      console.error('Response status:', response.status);
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+      throw new Error(`Server returned invalid response. Status: ${response.status}. URL: ${url}. Error: ${parseError.message}`);
     }
     
     if (!response.ok) {
@@ -393,40 +402,6 @@ export const authAPI = {
 };
 
 /**
- * Member API
- */
-export const memberAPI = {
-  getMe: () => {
-    return apiRequest('/api/members/me');
-  },
-  getRedemptions: () => {
-    return apiRequest('/api/members/redemptions');
-  },
-  getEventCheckins: () => {
-    return apiRequest('/api/members/event-checkins');
-  },
-  getVendors: () => {
-    return apiRequest('/api/members/vendors');
-  },
-  getOffers: (membershipType) => {
-    const params = membershipType ? `?membershipType=${membershipType}` : '';
-    return apiRequest(`/api/members/offers${params}`);
-  },
-  reportCard: (cardUid, issueType) => {
-    return apiRequest('/api/members/card/report', {
-      method: 'POST',
-      body: JSON.stringify({ cardUid, issueType }),
-    });
-  },
-  blockCard: (cardUid) => {
-    return apiRequest('/api/members/card/block', {
-      method: 'POST',
-      body: JSON.stringify({ cardUid }),
-    });
-  },
-};
-
-/**
  * Payment API
  */
 export const paymentAPI = {
@@ -507,12 +482,6 @@ export const paymentAPI = {
  */
 export const eventsAPI = {
   getUpcoming: () => apiRequest('/api/events'),
-  getEvent: (eventId) => apiRequest(`/api/events/${eventId}`),
-  register: (eventId) => {
-    return apiRequest(`/api/events/${eventId}/register`, {
-      method: 'POST',
-    });
-  },
 };
 
 /**

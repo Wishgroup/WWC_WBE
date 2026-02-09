@@ -1,0 +1,20 @@
+SUBJECT: Node.js App Locked - Need Lock Removed
+
+MESSAGE:
+
+Hi,
+
+My Node.js app "Wishwaveclubbackend" is locked in cPanel. I get error "Can't acquire lock for app" and cannot delete or modify it.
+
+Please remove the lock by:
+1. Killing stuck processes: pkill -9 -f "passenger.*Wishwaveclubbackend"
+2. Removing lock files: find ~ -name "*lock*" -delete
+3. Restarting Passenger if needed
+
+Account: wishhosp
+Domain: wishwavesclub.com
+
+This is urgent - blocking my deployment.
+
+Thanks!
+

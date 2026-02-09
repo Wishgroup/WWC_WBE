@@ -6,13 +6,14 @@ const MembershipBenefits = () => {
   const lifetimeBenefits = {
     fee: {
       usd: 'USD 1,000',
+      aed: 'Approx. AED 3,700'
     },
     commitment: 'One-time payment | Lifetime access',
     description: 'The Lifetime Membership is designed for individuals seeking enduring value, exclusivity, and access to a curated ecosystem of premium lifestyle, travel, and investment-linked benefits.',
     corePrivileges: [
       'One-time commitment with lifetime access to WWC membership benefits',
       'Priority updates and exclusive invitations to premium events',
-      'Complimentary access to UAE International Premier League matches',
+      'Complimentary access to UAE International Premier League matches (Terms & Conditions apply)',
       'Referral Reward: Introduce 5 new Lifetime Members and your Lifetime Membership is FREE'
     ],
     partnerDiscounts: {
@@ -64,6 +65,7 @@ const MembershipBenefits = () => {
   const annualBenefits = {
     fee: {
       usd: 'USD 100',
+      aed: 'Approx. AED 370',
       period: 'per annum'
     },
     description: 'As a valued Annual Member, you will enjoy flexible access to exclusive experiences, lifestyle privileges, and long-term value-added benefits, including:',
@@ -73,15 +75,15 @@ const MembershipBenefits = () => {
       'Complimentary access to all WWC events (up-to 8 events per annum)'
     ],
     financialBenefits: [
-      'Additional 2% per annum ROI on eligible WWC Value Programs (Coming Soon)',
+      'Additional 2% per annum ROI on eligible WWC Value Programs',
       'Referral Benefit: Introduce 5 new Annual Members and enjoy FREE renewal of your annual membership'
     ],
     lifestyleTravel: [
-      '2-night complimentary full-board stay at Wish Island Resort in 2028',
+      '2-night complimentary full-board stay at Wish Island Resort in 2028 (Terms & Conditions apply)',
       '10% discount on economy-class return air tickets (1 trip per annum with selected airlines)',
-      '10% discount on 2-night hotel stays in Dubai and Maldives',
+      '10% discount on 2-night hotel stays in Dubai and Maldives (Terms & Conditions apply)',
       '20% discount on bookings across the WWC Hotel Chain (as listed on the official website)',
-      'Complimentary spa service'
+      'Complimentary spa service (Terms & Conditions apply)'
     ],
     shoppingBrands: [
       'Extra 5% discount on purchases via the WWC Shop App',
@@ -121,6 +123,9 @@ const MembershipBenefits = () => {
             <h3 className="membership-fee-title">Membership Fee</h3>
             <div className="membership-fee-amount">
               <span className="fee-primary">{benefits.fee.usd}</span>
+              {benefits.fee.aed && (
+                <span className="fee-secondary">({benefits.fee.aed})</span>
+              )}
               {benefits.fee.period && (
                 <span className="fee-period"> {benefits.fee.period}</span>
               )}
@@ -241,11 +246,6 @@ const MembershipBenefits = () => {
             </div>
           </>
         )}
-      </div>
-      
-      {/* Terms and Conditions Footer */}
-      <div className="membership-terms-footer">
-        <p>Terms and Conditions apply</p>
       </div>
     </div>
   )

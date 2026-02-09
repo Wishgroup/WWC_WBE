@@ -4,12 +4,11 @@
  */
 
 import express from 'express';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { apiLimiter } from './middleware/rateLimiter.js';
@@ -24,7 +23,6 @@ import contactRoutes from './routes/contact.js';
 import supportRoutes from './routes/support.js';
 import analyticsRoutes from './routes/analytics.js';
 import { logAudit } from './services/AuditService.js';
-import { setupSocketIO } from './services/SocketService.js';
 
 // Get __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -34,21 +32,7 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 const app = express();
-const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
-
-// Initialize Socket.IO
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? true 
-      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-    credentials: true,
-  },
-});
-
-// Setup Socket.IO handlers
-setupSocketIO(io);
 
 // Security middleware
 app.use(helmet());
@@ -87,6 +71,16 @@ app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Ensure uploads directory exists before serving static files
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+const bankReceiptsDir = path.join(uploadsDir, 'bank-receipts');
+if (!fs.existsSync(bankReceiptsDir)) {
+  fs.mkdirSync(bankReceiptsDir, { recursive: true });
+}
 
 // Serve uploaded files (bank receipts)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -196,7 +190,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║   Wish Waves Club Backend API                            ║

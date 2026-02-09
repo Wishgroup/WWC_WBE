@@ -7,16 +7,21 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { query } from '../database/connection.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
 import { sendWelcomeEmail } from '../services/EmailService.js';
 import crypto from 'crypto';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const router = express.Router();
 
-// Configure multer for file uploads
-const uploadDir = path.join(process.cwd(), 'uploads', 'bank-receipts');
+// Configure multer for file uploads - use __dirname for reliable path in cPanel
+const uploadDir = path.join(__dirname, '..', 'uploads', 'bank-receipts');
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(uploadDir)) {

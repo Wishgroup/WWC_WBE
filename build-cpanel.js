@@ -56,18 +56,16 @@ if (existsSync(FRONTEND_BUILD)) {
 // Step 4: Create .htaccess for cPanel
 console.log('4️⃣  Creating .htaccess for cPanel...');
 const htaccessContent = `# Wish Waves Club - cPanel Deployment Configuration
+# IMPORTANT: Passenger handles /api/* automatically - DO NOT proxy to port 3001
+# Passenger uses dynamic ports and connects Apache automatically
 
 # Enable Rewrite Engine
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Proxy /api/* to Node.js backend (same server)
-  # Change 3001 to the port your cPanel Node.js app uses if different
-  RewriteCond %{REQUEST_URI} ^/api/ [NC]
-  RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
-
   # Handle frontend routing - serve index.html for all non-file requests
+  # Note: /api/* is handled by Passenger automatically - no proxy needed
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_URI} !^/api/
@@ -136,6 +134,7 @@ mkdirSync(backendBuildDir, { recursive: true });
 // Copy backend files (excluding node_modules, .env, etc.)
 const filesToCopy = [
   'server.js',
+  'run.cjs',
   'passenger-loader.cjs',
   'package.json',
   'package-lock.json',

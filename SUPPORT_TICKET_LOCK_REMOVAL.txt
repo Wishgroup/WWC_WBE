@@ -1,0 +1,54 @@
+SUBJECT: Urgent: Node.js App Lock Error - Cannot Delete or Modify Application
+
+MESSAGE:
+
+Hello Support Team,
+
+I am experiencing a critical issue with my Node.js application in cPanel and need immediate assistance.
+
+PROBLEM:
+- Application Name: Wishwaveclubbackend
+- Error Message: "Can't acquire lock for app: Wishwaveclubbackend"
+- Additional Error: "The received data is wrong. Contact support for resolution."
+
+I cannot:
+- Delete the application (DESTROY button fails)
+- Modify the application settings
+- Start or stop the application
+- Access the application
+
+WHAT I'VE TRIED:
+- Attempted to stop the app (failed)
+- Attempted to destroy the app (failed with lock error)
+- Waited and retried (same error persists)
+
+REQUEST:
+Please help me remove the lock on this Node.js application. I need you to:
+
+1. Kill any stuck Passenger/Node.js processes related to "Wishwaveclubbackend"
+2. Remove any lock files (.passenger_lock, passenger.lock, *.pid files)
+3. Clear the application from cPanel Node.js applications if needed
+4. Restart Passenger service if necessary
+
+You can use these commands (if helpful):
+```bash
+pkill -9 -f "passenger.*Wishwaveclubbackend"
+pkill -9 -f "node.*Wishwaveclubbackend"
+find /home3/wishhosp -name ".passenger_lock" -delete
+find /home3/wishhosp -name "passenger.lock" -delete
+find /home3/wishhosp -name "*.pid" -path "*/tmp/pids/*" -delete
+touch /home3/wishhosp/tmp/restart.txt
+```
+
+ACCOUNT DETAILS:
+- cPanel Username: wishhosp
+- Domain: wishwavesclub.com
+- Application Root: Wishwaveclubbackend
+
+This is blocking my deployment. Please prioritize this request.
+
+Thank you for your assistance.
+
+Best regards,
+[Your Name]
+
