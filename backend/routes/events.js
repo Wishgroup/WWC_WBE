@@ -122,6 +122,7 @@ adminRouter.post('/', async (req, res) => {
       end_time,
       location,
       max_capacity,
+      image_url,
       allowed_tiers,
       time_window_start,
       time_window_end,
@@ -139,8 +140,8 @@ adminRouter.post('/', async (req, res) => {
     // Create event
     const eventResult = await query(
       `INSERT INTO events 
-       (event_name, event_code, description, start_time, end_time, location, max_capacity, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, true)`,
+       (event_name, event_code, description, start_time, end_time, location, max_capacity, image_url, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, true)`,
       [
         event_name,
         event_code,
@@ -149,10 +150,11 @@ adminRouter.post('/', async (req, res) => {
         end_time,
         location || null,
         max_capacity || null,
+        image_url || null,
       ]
     );
 
-    const eventId = eventResult.rows.insertId;
+    const eventId = eventResult.insertId || eventResult.rows?.insertId;
 
     // Create event rules if provided
     if (allowed_tiers || time_window_start || time_window_end || 
@@ -217,6 +219,7 @@ adminRouter.put('/:id', async (req, res) => {
       end_time,
       location,
       max_capacity,
+      image_url,
       is_active,
       allowed_tiers,
       time_window_start,
@@ -234,6 +237,7 @@ adminRouter.put('/:id', async (req, res) => {
            end_time = COALESCE(?, end_time),
            location = COALESCE(?, location),
            max_capacity = COALESCE(?, max_capacity),
+           image_url = COALESCE(?, image_url),
            is_active = COALESCE(?, is_active),
            updated_at = NOW()
        WHERE id = ?`,
@@ -244,6 +248,7 @@ adminRouter.put('/:id', async (req, res) => {
         end_time,
         location,
         max_capacity,
+        image_url,
         is_active,
         id,
       ]

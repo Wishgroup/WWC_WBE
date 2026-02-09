@@ -190,7 +190,7 @@ const Login = () => {
                     <input type="checkbox" />
                     <span>Remember me</span>
                   </label>
-                  <Link to="#" className="forgot-link">Forgot password?</Link>
+                  <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
                 </div>
 
                 <button type="submit" className="login-button" disabled={loading}>

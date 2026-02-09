@@ -1,0 +1,58 @@
+# Wish Waves Club — full stack (MySQL + backend + frontend)
+# Run: docker-compose up -d
+# Then: docker-compose exec backend npm run migrate
+# App: http://localhost:5173  |  API: http://localhost:3001
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: wwc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      MYSQL_DATABASE: wwc_local
+      MYSQL_USER: wwc
+      MYSQL_PASSWORD: wwc_local_secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - wwc_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: wwc-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file: ./backend/.env
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: wwc_local
+      DB_USER: wwc
+      DB_PASSWORD: wwc_local_secret
+      PORT: "3001"
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: .
+    container_name: wwc-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+
+volumes:
+  wwc_mysql_data:

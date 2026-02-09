@@ -1,0 +1,27 @@
+# Local MySQL for Wish Waves Club backend development
+# Run: docker-compose up -d
+# Then: npm run migrate
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: wwc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      MYSQL_DATABASE: wwc_local
+      MYSQL_USER: wwc
+      MYSQL_PASSWORD: wwc_local_secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - wwc_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wwc_mysql_data:

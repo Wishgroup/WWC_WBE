@@ -62,13 +62,10 @@ const htaccessContent = `# Wish Waves Club - cPanel Deployment Configuration
   RewriteEngine On
   RewriteBase /
 
-  # Handle API requests - proxy to Node.js backend (if on same server)
-  # Uncomment and adjust port if using proxy:
-  # RewriteCond %{REQUEST_URI} ^/api/ [NC]
-  # RewriteRule ^api/(.*)$ http://localhost:3001/api/$1 [P,L]
-  
-  # If using subdomain for API (e.g., api.yourdomain.com), no rewrite needed
-  # Frontend should use full subdomain URL in API calls
+  # Proxy /api/* to Node.js backend (same server)
+  # Change 3001 to the port your cPanel Node.js app uses if different
+  RewriteCond %{REQUEST_URI} ^/api/ [NC]
+  RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
 
   # Handle frontend routing - serve index.html for all non-file requests
   RewriteCond %{REQUEST_FILENAME} !-f
@@ -139,6 +136,7 @@ mkdirSync(backendBuildDir, { recursive: true });
 // Copy backend files (excluding node_modules, .env, etc.)
 const filesToCopy = [
   'server.js',
+  'passenger-loader.cjs',
   'package.json',
   'package-lock.json',
   'routes',
@@ -235,15 +233,23 @@ const deploymentInstructions = `# cPanel Deployment Instructions - Wish Waves Cl
 \`\`\`
 cpanel-build/
 ├── public_html/          # Frontend files (upload to public_html)
-└── backend/              # Backend files (upload to backend directory)
+├── backend/              # Backend files (upload to backend directory)
+├── WWC-frontend.zip     # Frontend – upload & extract into public_html
+└── WWC-backend.zip      # Backend – upload & extract into Node.js app root
 \`\`\`
 
 ## Step 1: Upload Frontend Files
 
-1. Connect to your cPanel via FTP/SFTP or File Manager
-2. Navigate to \`public_html\` directory
-3. Upload all files from \`cpanel-build/public_html\` to \`public_html\`
-4. Make sure \`.htaccess\` file is uploaded (it may be hidden)
+**Option A – Using zip (recommended)**  
+1. Upload \`WWC-frontend.zip\` to cPanel File Manager.  
+2. Navigate to \`public_html\`.  
+3. Use “Extract” on the zip so that \`index.html\`, \`assets/\`, \`.htaccess\`, etc. end up directly inside \`public_html\`.
+
+**Option B – Using folders**  
+1. Connect via FTP/SFTP or File Manager.  
+2. Navigate to \`public_html\`.  
+3. Upload all contents of \`cpanel-build/public_html\` into \`public_html\`.  
+4. Ensure \`.htaccess\` is uploaded (enable “Show Hidden Files” in File Manager if needed).
 
 ## Step 2: Set Up Backend
 
@@ -254,8 +260,8 @@ cpanel-build/
    - **Node.js version**: 18.x or higher
    - **Application root**: \`backend\` (or \`/home/username/backend\`)
    - **Application URL**: \`/api\` (optional, or use subdomain)
-   - **Application startup file**: \`server.js\`
-3. Upload backend files to the application root directory
+   - **Application startup file**: \`passenger-loader.cjs\` (required for ESM on Passenger)
+3. Upload \`WWC-backend.zip\` to the application root and **Extract** (so \`server.js\`, \`package.json\`, \`routes/\`, etc. are in the root). Or upload the contents of \`cpanel-build/backend\`.
 4. In the Node.js app settings, run:
    \`\`\`bash
    npm install
@@ -455,6 +461,37 @@ const buildReadme = [
 writeFileSync(join(BUILD_DIR, 'README.md'), buildReadme);
 console.log('   ✅ Build README created\n');
 
+// Step 10: Create separate zip files for upload
+console.log('🔟 Creating zip files for upload...');
+const publicHtmlPath = join(BUILD_DIR, 'public_html');
+const backendPath = join(BUILD_DIR, 'backend');
+const frontendZip = join(BUILD_DIR, 'WWC-frontend.zip');
+const backendZip = join(BUILD_DIR, 'WWC-backend.zip');
+
+try {
+  // Frontend zip: contents of public_html (extract into public_html on server)
+  if (process.platform === 'win32') {
+    execSync(`powershell -Command "Compress-Archive -Path '${publicHtmlPath}\\*' -DestinationPath '${frontendZip}' -Force"`, { stdio: 'inherit' });
+  } else {
+    execSync(`cd "${publicHtmlPath}" && zip -r "${frontendZip}" . -x "*.DS_Store"`, { stdio: 'inherit' });
+  }
+  console.log('   ✅ WWC-frontend.zip created');
+} catch (e) {
+  console.warn('   ⚠️  Could not create WWC-frontend.zip (zip tool may be missing). You can zip public_html/ manually.');
+}
+
+try {
+  // Backend zip: contents of backend (extract into backend on server)
+  if (process.platform === 'win32') {
+    execSync(`powershell -Command "Compress-Archive -Path '${backendPath}\\*' -DestinationPath '${backendZip}' -Force"`, { stdio: 'inherit' });
+  } else {
+    execSync(`cd "${backendPath}" && zip -r "${backendZip}" . -x "*.DS_Store" -x "node_modules/*"`, { stdio: 'inherit' });
+  }
+  console.log('   ✅ WWC-backend.zip created\n');
+} catch (e) {
+  console.warn('   ⚠️  Could not create WWC-backend.zip (zip tool may be missing). You can zip backend/ manually.\n');
+}
+
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('✅ cPanel build completed successfully!');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
@@ -462,11 +499,12 @@ console.log('📦 Build location: cpanel-build/');
 console.log('📁 Directory structure:');
 console.log('   ├── public_html/     (Frontend - upload to public_html)');
 console.log('   ├── backend/        (Backend - set up as Node.js app)');
+console.log('   ├── WWC-frontend.zip (Frontend – upload & extract into public_html)');
+console.log('   ├── WWC-backend.zip  (Backend – upload & extract into backend)');
 console.log('   ├── README.md        (This file)');
 console.log('   └── DEPLOYMENT_INSTRUCTIONS.md\n');
 console.log('📄 Next steps:');
-console.log('   1. Review DEPLOYMENT_INSTRUCTIONS.md');
-console.log('   2. Upload files to cPanel');
-console.log('   3. Set up Node.js application');
-console.log('   4. Configure database and environment variables\n');
+console.log('   1. Upload WWC-frontend.zip to cPanel → extract in public_html');
+console.log('   2. Upload WWC-backend.zip → extract in Node.js app root, run npm install');
+console.log('   3. Configure database and environment variables\n');
 

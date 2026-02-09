@@ -193,6 +193,89 @@ If you have any questions, please contact us at info@wishgroup.ae
   }
 };
 
+const FRONTEND_BASE = process.env.FRONTEND_URL || 'https://www.wishwavesclub.com';
+
+/**
+ * Send password reset email with secure link
+ * @param {string} userEmail - User's email address
+ * @param {string} resetToken - One-time reset token
+ */
+export const sendPasswordResetEmail = async (userEmail, resetToken) => {
+  try {
+    const transporter = createTransporter();
+    const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@wishwavesclub.com';
+    const resetLink = `${FRONTEND_BASE}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(userEmail)}`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Your Password</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <tr>
+                    <td style="background: linear-gradient(135deg, #0a5d6f 0%, #0d7a8f 100%); padding: 40px 30px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Reset Your Password</h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 40px 30px;">
+                      <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        We received a request to reset the password for your Wish Waves Club account (${userEmail}).
+                      </p>
+                      <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                        Click the button below to choose a new password. This link will expire in 1 hour.
+                      </p>
+                      <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetLink}" style="display: inline-block; background-color: #0a5d6f; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">Reset Password</a>
+                      </div>
+                      <p style="color: #888888; font-size: 14px; line-height: 1.6; margin: 25px 0 0 0;">
+                        If you didn't request this, you can safely ignore this email. Your password will not be changed.
+                      </p>
+                      <p style="color: #888888; font-size: 12px; line-height: 1.6; margin: 15px 0 0 0;">
+                        Link not working? Copy and paste this URL into your browser:<br/>
+                        <a href="${resetLink}" style="color: #0a5d6f; word-break: break-all;">${resetLink}</a>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                      <p style="color: #6c757d; font-size: 12px; margin: 0;">Wish Waves Club</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const textContent = `Reset Your Password\n\nWe received a request to reset the password for ${userEmail}.\n\nReset link (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, ignore this email.\n\nWish Waves Club`;
+
+    const mailOptions = {
+      from: `"Wish Waves Club" <${emailFrom}>`,
+      to: userEmail,
+      subject: 'Wish Waves Club – Reset Your Password',
+      text: textContent,
+      html: htmlContent,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Password reset email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error);
+    throw error;
+  }
+};
+
 /**
  * Send subscription thank you email
  * @param {string} userEmail - Subscriber's email address

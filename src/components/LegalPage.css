@@ -122,6 +122,64 @@
   margin-top: 0;
 }
 
+/* Cookie / policy tables */
+.cookie-table-wrapper {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.legal-content .cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.legal-content .cookie-table thead {
+  background: #0a5d6f;
+  color: #fff;
+}
+
+.legal-content .cookie-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.legal-content .cookie-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.legal-content .cookie-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.legal-content .cookie-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.legal-content .policy-summary {
+  background: #f0f9fa;
+  border-left: 4px solid #0a5d6f;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 4px;
+}
+
+.legal-content .policy-summary p {
+  margin: 0 0 0.5rem 0;
+}
+
+.legal-content .policy-summary p:last-child {
+  margin-bottom: 0;
+}
+
 @media (max-width: 768px) {
   .legal-page-container {
     padding: 0 1rem 2rem;

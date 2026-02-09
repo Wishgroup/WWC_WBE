@@ -6,11 +6,12 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { query } from '../database/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { apiLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../services/AuditService.js';
-import { sendLoginNotification } from '../services/EmailService.js';
+import { sendLoginNotification, sendPasswordResetEmail } from '../services/EmailService.js';
 
 const router = express.Router();
 
@@ -666,6 +667,148 @@ router.post('/save-personal-info', apiLimiter, async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to save personal information' 
+    });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Request a password reset email (members only)
+ */
+router.post('/forgot-password', apiLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const memberResult = await query(
+      'SELECT id, email FROM members WHERE email = ?',
+      [normalizedEmail]
+    );
+    if (memberResult.rows.length === 0) {
+      // Don't reveal whether email exists; same response for security
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, you will receive a password reset link shortly.',
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await query(
+      'INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, ?)',
+      [normalizedEmail, token, expiresAt]
+    );
+
+    await sendPasswordResetEmail(normalizedEmail, token);
+
+    await logAudit({
+      userType: 'system',
+      action: 'forgot_password_requested',
+      resourceType: 'member',
+      resourceId: memberResult.rows[0].id,
+      details: { email: normalizedEmail },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    return res.json({
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset link shortly.',
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Unable to process request. Please try again later.',
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using token from email (members only)
+ */
+router.post('/reset-password', apiLimiter, async (req, res) => {
+  try {
+    const { token, email, password } = req.body;
+    if (!token || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token, email, and new password are required.',
+      });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 6 characters long.',
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const tokenRows = await query(
+      'SELECT id, email, expires_at, used_at FROM password_reset_tokens WHERE token = ? AND email = ?',
+      [token, normalizedEmail]
+    );
+    if (tokenRows.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset link. Please request a new one.',
+      });
+    }
+    const row = tokenRows.rows[0];
+    if (row.used_at) {
+      return res.status(400).json({
+        success: false,
+        error: 'This reset link has already been used. Please request a new one.',
+      });
+    }
+    if (new Date(row.expires_at) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'This reset link has expired. Please request a new one.',
+      });
+    }
+
+    const memberResult = await query(
+      'SELECT id FROM members WHERE email = ?',
+      [normalizedEmail]
+    );
+    if (memberResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset link. Please request a new one.',
+      });
+    }
+    const memberId = memberResult.rows[0].id;
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await query('UPDATE members SET password_hash = ?, updated_at = NOW() WHERE id = ?', [passwordHash, memberId]);
+    await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?', [row.id]);
+
+    await logAudit({
+      userType: 'member',
+      action: 'password_reset',
+      resourceType: 'member',
+      resourceId: memberId,
+      details: { email: normalizedEmail },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    return res.json({
+      success: true,
+      message: 'Your password has been reset. You can now log in with your new password.',
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to reset password. Please try again or contact support.',
     });
   }
 });

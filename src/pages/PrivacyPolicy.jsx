@@ -24,7 +24,7 @@ const PrivacyPolicy = () => {
       name: 'Wish Waves Club',
       url: baseUrl,
     },
-    dateModified: '2026-02-06',
+    dateModified: '2026-02-07',
   }
 
   return (
@@ -40,6 +40,10 @@ const PrivacyPolicy = () => {
           By using WWC services, you consent to the data practices described in this policy. If you do not agree 
           with this policy, please do not use our services.
         </p>
+        <div className="policy-summary">
+          <p><strong>Summary:</strong></p>
+          <p>We collect your identity, contact, membership, and usage data to provide membership services, process payments, and improve our platform. We share data only with necessary service providers and partners. We retain data as required by law and our retention policy. You have rights to access, correct, delete, and port your data, and to object or withdraw consent. We use security measures including encryption and access controls. For cookies, see our <Link to="/cookie-policy">Cookie Policy</Link>.</p>
+        </div>
       </section>
 
       <section>
@@ -341,6 +345,9 @@ const PrivacyPolicy = () => {
         </p>
         <p>
           For general inquiries, visit our <Link to="/support">Support Center</Link>.
+        </p>
+        <p style={{ marginBottom: 0, fontSize: '0.9rem', color: '#666' }}>
+          <em>Last updated: February 7, 2026</em>
         </p>
       </section>
     </LegalPage>

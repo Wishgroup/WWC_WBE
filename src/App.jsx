@@ -16,6 +16,18 @@ import ApplicationRejected from './pages/ApplicationRejected'
 import PaymentPending from './pages/PaymentPending'
 import Support from './pages/Support'
 import SetPassword from './pages/SetPassword'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import Rejoin from './pages/Rejoin'
+import Refer from './pages/Refer'
+import Gift from './pages/Gift'
+import Community from './pages/Community'
+import Corporate from './pages/Corporate'
+import OrderStatus from './pages/OrderStatus'
+import About from './pages/About'
+import Mission from './pages/Mission'
+import Careers from './pages/Careers'
+import Press from './pages/Press'
 // Use dynamic imports to avoid ad blockers blocking files with "Privacy" or "Cookie" in name
 import TermsOfUse from './pages/TermsOfUse'
 import Security from './pages/Security'
@@ -55,6 +67,18 @@ function AppRoutes() {
         <Route path="/payment/pending" element={<PaymentPending />} />
         <Route path="/support" element={<Support />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/rejoin" element={<Rejoin />} />
+        <Route path="/refer" element={<Refer />} />
+        <Route path="/gift" element={<Gift />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/corporate" element={<Corporate />} />
+        <Route path="/order-status" element={<OrderStatus />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/mission" element={<Mission />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/press" element={<Press />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route 
           path="/privacy-policy" 
