@@ -12,7 +12,7 @@ const MembershipBenefits = () => {
     corePrivileges: [
       'One-time commitment with lifetime access to WWC membership benefits',
       'Priority updates and exclusive invitations to premium events',
-      'Complimentary access to UAE International Premier League matches (Terms & Conditions apply)',
+      'Complimentary access to UAE International Premier League matches',
       'Referral Reward: Introduce 5 new Lifetime Members and your Lifetime Membership is FREE'
     ],
     partnerDiscounts: {
@@ -73,15 +73,15 @@ const MembershipBenefits = () => {
       'Complimentary access to all WWC events (up-to 8 events per annum)'
     ],
     financialBenefits: [
-      'Additional 2% per annum ROI on eligible WWC Value Programs',
+      'Additional 2% per annum ROI on eligible WWC Value Programs (Coming Soon)',
       'Referral Benefit: Introduce 5 new Annual Members and enjoy FREE renewal of your annual membership'
     ],
     lifestyleTravel: [
-      '2-night complimentary full-board stay at Wish Island Resort in 2028 (Terms & Conditions apply)',
+      '2-night complimentary full-board stay at Wish Island Resort in 2028',
       '10% discount on economy-class return air tickets (1 trip per annum with selected airlines)',
-      '10% discount on 2-night hotel stays in Dubai and Maldives (Terms & Conditions apply)',
+      '10% discount on 2-night hotel stays in Dubai and Maldives',
       '20% discount on bookings across the WWC Hotel Chain (as listed on the official website)',
-      'Complimentary spa service (Terms & Conditions apply)'
+      'Complimentary spa service'
     ],
     shoppingBrands: [
       'Extra 5% discount on purchases via the WWC Shop App',
@@ -241,6 +241,11 @@ const MembershipBenefits = () => {
             </div>
           </>
         )}
+      </div>
+      
+      {/* Terms and Conditions Footer */}
+      <div className="membership-terms-footer">
+        <p>Terms and Conditions apply</p>
       </div>
     </div>
   )

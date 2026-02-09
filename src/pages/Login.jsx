@@ -11,11 +11,20 @@ const Login = () => {
     email: '',
     password: '',
     userType: 'member',
+    rememberMe: false,
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+
+  // Load saved email if remember me was checked
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('remembered_email')
+    if (rememberedEmail) {
+      setFormData(prev => ({ ...prev, email: rememberedEmail, rememberMe: true }))
+    }
+  }, [])
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -37,9 +46,18 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const result = await login(formData.email, formData.password, formData.userType)
+      const result = await login(formData.email, formData.password, formData.userType, formData.rememberMe)
       
       if (result && result.success) {
+        // Handle remember me
+        if (formData.rememberMe) {
+          localStorage.setItem('remembered_email', formData.email)
+          localStorage.setItem('remember_me', 'true')
+        } else {
+          localStorage.removeItem('remembered_email')
+          localStorage.removeItem('remember_me')
+        }
+        
         // Track successful login
         trackLogin(formData.userType)
         setLoading(false)
@@ -187,7 +205,11 @@ const Login = () => {
 
                 <div className="form-options">
                   <label className="checkbox-label">
-                    <input type="checkbox" />
+                    <input 
+                      type="checkbox" 
+                      checked={formData.rememberMe}
+                      onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                    />
                     <span>Remember me</span>
                   </label>
                   <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>

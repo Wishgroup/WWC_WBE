@@ -397,3 +397,34 @@
     line-height: 1.4;
   }
 }
+
+/* Terms and Conditions Footer */
+.membership-terms-footer {
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid rgba(26, 77, 77, 0.08);
+  background: var(--off-white);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.membership-terms-footer p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
+  opacity: 0.7;
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .membership-terms-footer {
+    padding: 16px;
+  }
+
+  .membership-terms-footer p {
+    font-size: 10px;
+  }
+}

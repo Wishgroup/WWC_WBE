@@ -4,6 +4,8 @@
  */
 
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -22,6 +24,7 @@ import contactRoutes from './routes/contact.js';
 import supportRoutes from './routes/support.js';
 import analyticsRoutes from './routes/analytics.js';
 import { logAudit } from './services/AuditService.js';
+import { setupSocketIO } from './services/SocketService.js';
 
 // Get __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -31,7 +34,21 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
+
+// Initialize Socket.IO
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? true 
+      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+    credentials: true,
+  },
+});
+
+// Setup Socket.IO handlers
+setupSocketIO(io);
 
 // Security middleware
 app.use(helmet());
@@ -179,7 +196,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║   Wish Waves Club Backend API                            ║

@@ -118,7 +118,7 @@ const Events = () => {
                   <button
                     type="button"
                     className="card-button plus-button"
-                    onClick={() => navigate('/register')}
+                    onClick={() => navigate(`/events/${ev.id}`)}
                     aria-label={`View ${ev.event_name}`}
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

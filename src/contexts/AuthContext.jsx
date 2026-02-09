@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const login = async (email, password, userType = 'member') => {
+  const login = async (email, password, userType = 'member', rememberMe = false) => {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:45',message:'login function called',data:{email,userType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
@@ -79,6 +79,13 @@ export const AuthProvider = ({ children }) => {
         setAccountStatus(data.account_status || null)
         setNextAction(data.next_action || null)
         localStorage.setItem('token', data.token)
+        
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem('remember_me', 'true')
+        } else {
+          localStorage.removeItem('remember_me')
+        }
         
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/cfe73359-2dd7-4cb3-884a-a3bdccf851f1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.jsx:56',message:'Returning success',data:{userRole:data.user.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});

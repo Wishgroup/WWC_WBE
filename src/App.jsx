@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Join from './pages/Join'
 import Benefits from './pages/Benefits'
 import Events from './pages/Events'
+import EventDetail from './pages/EventDetail'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import PaymentSuccess from './pages/PaymentSuccess'
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="/join" element={<Join />} />
         <Route path="/benefits" element={<Benefits />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/success" element={<PaymentSuccess />} />

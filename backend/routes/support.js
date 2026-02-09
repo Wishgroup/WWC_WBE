@@ -7,6 +7,7 @@ import express from 'express';
 import { query } from '../database/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logAudit } from '../services/AuditService.js';
+import { sendChatNotificationEmail } from '../services/EmailService.js';
 
 const router = express.Router();
 
@@ -312,6 +313,70 @@ router.post('/tickets/:ticketId/messages', authenticateToken, async (req, res) =
       `UPDATE support_tickets SET updated_at = NOW() WHERE id = ?`,
       [ticketId]
     );
+
+    // Send email notification to the other party
+    try {
+      if (userRole === 'admin') {
+        // Admin sent message - notify member
+        const memberRes = await query(
+          'SELECT email, full_name FROM members WHERE id = ?',
+          [ticket.member_id]
+        );
+        if (memberRes.rows && memberRes.rows.length > 0) {
+          const member = memberRes.rows[0];
+          await sendChatNotificationEmail(
+            member.email,
+            member.full_name || 'Member',
+            ticket.ticket_number || `#${ticketId}`,
+            ticket.subject || 'Support Ticket',
+            message.trim(),
+            'admin',
+            false // isMember = false (admin sent, member receives)
+          );
+        }
+      } else {
+        // Member sent message - notify assigned admin or all admins
+        if (ticket.assigned_to) {
+          const adminRes = await query(
+            'SELECT email, full_name FROM admin_users WHERE id = ?',
+            [ticket.assigned_to]
+          );
+          if (adminRes.rows && adminRes.rows.length > 0) {
+            const admin = adminRes.rows[0];
+            await sendChatNotificationEmail(
+              admin.email,
+              admin.full_name || 'Admin',
+              ticket.ticket_number || `#${ticketId}`,
+              ticket.subject || 'Support Ticket',
+              message.trim(),
+              'member',
+              true // isMember = true (member sent, admin receives)
+            );
+          }
+        } else {
+          // No assigned admin - notify all admins
+          const adminsRes = await query(
+            'SELECT email, full_name FROM admin_users WHERE is_active = true'
+          );
+          if (adminsRes.rows && adminsRes.rows.length > 0) {
+            for (const admin of adminsRes.rows) {
+              await sendChatNotificationEmail(
+                admin.email,
+                admin.full_name || 'Admin',
+                ticket.ticket_number || `#${ticketId}`,
+                ticket.subject || 'Support Ticket',
+                message.trim(),
+                'member',
+                true
+              );
+            }
+          }
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send chat notification email:', emailError);
+      // Don't fail the request if email fails
+    }
 
     // Log audit
     await logAudit({

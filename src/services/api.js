@@ -393,6 +393,40 @@ export const authAPI = {
 };
 
 /**
+ * Member API
+ */
+export const memberAPI = {
+  getMe: () => {
+    return apiRequest('/api/members/me');
+  },
+  getRedemptions: () => {
+    return apiRequest('/api/members/redemptions');
+  },
+  getEventCheckins: () => {
+    return apiRequest('/api/members/event-checkins');
+  },
+  getVendors: () => {
+    return apiRequest('/api/members/vendors');
+  },
+  getOffers: (membershipType) => {
+    const params = membershipType ? `?membershipType=${membershipType}` : '';
+    return apiRequest(`/api/members/offers${params}`);
+  },
+  reportCard: (cardUid, issueType) => {
+    return apiRequest('/api/members/card/report', {
+      method: 'POST',
+      body: JSON.stringify({ cardUid, issueType }),
+    });
+  },
+  blockCard: (cardUid) => {
+    return apiRequest('/api/members/card/block', {
+      method: 'POST',
+      body: JSON.stringify({ cardUid }),
+    });
+  },
+};
+
+/**
  * Payment API
  */
 export const paymentAPI = {
@@ -462,6 +496,10 @@ export const paymentAPI = {
       throw error;
     });
   },
+
+  getOrderStatus: (orderId) => {
+    return apiRequest(`/api/payment/bank-transfer/receipt-status/${orderId}`);
+  },
 };
 
 /**
@@ -469,6 +507,12 @@ export const paymentAPI = {
  */
 export const eventsAPI = {
   getUpcoming: () => apiRequest('/api/events'),
+  getEvent: (eventId) => apiRequest(`/api/events/${eventId}`),
+  register: (eventId) => {
+    return apiRequest(`/api/events/${eventId}/register`, {
+      method: 'POST',
+    });
+  },
 };
 
 /**

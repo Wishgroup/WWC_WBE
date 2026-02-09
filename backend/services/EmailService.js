@@ -614,10 +614,307 @@ Reply to: ${email}
   }
 };
 
+/**
+ * Send bank transfer instructions email
+ * @param {string} userEmail - User's email address
+ * @param {string} userName - User's full name
+ * @param {string} membershipType - Type of membership (annual/lifetime)
+ * @param {number} amount - Payment amount
+ * @param {string} currency - Currency code (e.g., 'USD')
+ * @param {string} orderId - Order ID for tracking
+ */
+export const sendBankTransferEmail = async (userEmail, userName, membershipType, amount, currency, orderId) => {
+  try {
+    const transporter = createTransporter();
+    const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@wishwavesclub.com';
+    
+    const membershipTypeDisplay = membershipType === 'lifetime' ? 'Lifetime' : 'Annual';
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(amount);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Bank Transfer Instructions - Wish Waves Club</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background: linear-gradient(135deg, #0a5d6f 0%, #0d7a8f 100%); padding: 40px 30px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Bank Transfer Instructions</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px 30px;">
+                      <p style="color: #333333; font-size: 18px; line-height: 1.6; margin: 0 0 20px 0;">
+                        Dear ${userName},
+                      </p>
+                      
+                      <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        Thank you for choosing to pay via bank transfer for your <strong>${membershipTypeDisplay} Membership</strong> with Wish Waves Club.
+                      </p>
+                      
+                      <div style="background-color: #f0f9fa; border-left: 4px solid #0a5d6f; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                        <p style="color: #0a5d6f; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">
+                          Payment Details
+                        </p>
+                        <p style="color: #555555; font-size: 14px; line-height: 1.8; margin: 5px 0;">
+                          <strong>Order ID:</strong> ${orderId}
+                        </p>
+                        <p style="color: #555555; font-size: 14px; line-height: 1.8; margin: 5px 0;">
+                          <strong>Amount:</strong> ${formattedAmount}
+                        </p>
+                        <p style="color: #555555; font-size: 14px; line-height: 1.8; margin: 5px 0;">
+                          <strong>Membership Type:</strong> ${membershipTypeDisplay}
+                        </p>
+                      </div>
+                      
+                      <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                        <p style="color: #856404; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">
+                          📋 Next Steps
+                        </p>
+                        <ol style="color: #856404; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                          <li>Complete the bank transfer using the details provided in your payment confirmation</li>
+                          <li>Upload your payment receipt using the link below</li>
+                          <li>Wait for admin verification (usually within 24-48 hours)</li>
+                          <li>You'll receive an email once your payment is verified and membership is activated</li>
+                        </ol>
+                      </div>
+                      
+                      <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 30px 0 20px 0;">
+                        <strong>Important:</strong> Please include your Order ID (${orderId}) in the bank transfer reference/memo field to help us process your payment quickly.
+                      </p>
+                      
+                      <div style="text-align: center; margin: 40px 0 20px 0;">
+                        <a href="${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/order-status?orderId=${orderId}" 
+                           style="display: inline-block; background-color: #0a5d6f; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                          Check Order Status
+                        </a>
+                      </div>
+                      
+                      <p style="color: #888888; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                        If you have any questions about your payment or need assistance, please contact our support team at <a href="mailto:${INQUIRY_EMAIL}" style="color: #0a5d6f;">${INQUIRY_EMAIL}</a>
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                      <p style="color: #6c757d; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
+                        <strong>Wish Waves Club</strong>
+                      </p>
+                      <p style="color: #6c757d; font-size: 12px; line-height: 1.6; margin: 0;">
+                        Thank you for your membership application!
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+Bank Transfer Instructions - Wish Waves Club
+
+Dear ${userName},
+
+Thank you for choosing to pay via bank transfer for your ${membershipTypeDisplay} Membership with Wish Waves Club.
+
+Payment Details:
+- Order ID: ${orderId}
+- Amount: ${formattedAmount}
+- Membership Type: ${membershipTypeDisplay}
+
+Next Steps:
+1. Complete the bank transfer using the details provided in your payment confirmation
+2. Upload your payment receipt
+3. Wait for admin verification (usually within 24-48 hours)
+4. You'll receive an email once your payment is verified and membership is activated
+
+Important: Please include your Order ID (${orderId}) in the bank transfer reference/memo field to help us process your payment quickly.
+
+Check Order Status: ${process.env.FRONTEND_URL || 'https://www.wishwavesclub.com'}/order-status?orderId=${orderId}
+
+If you have any questions about your payment or need assistance, please contact our support team at ${INQUIRY_EMAIL}
+
+Wish Waves Club
+Thank you for your membership application!
+    `;
+    
+    const mailOptions = {
+      from: `"Wish Waves Club" <${emailFrom}>`,
+      to: userEmail,
+      subject: `Bank Transfer Instructions - Order ${orderId} - Wish Waves Club`,
+      text: textContent,
+      html: htmlContent,
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Bank transfer email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending bank transfer email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send chat notification email when a new message is received
+ * @param {string} userEmail - Recipient's email address
+ * @param {string} userName - Recipient's name
+ * @param {string} ticketNumber - Support ticket number
+ * @param {string} ticketSubject - Ticket subject
+ * @param {string} messagePreview - Preview of the message
+ * @param {string} senderType - 'member' or 'admin'
+ * @param {boolean} isMember - true if recipient is member, false if admin
+ */
+export const sendChatNotificationEmail = async (
+  userEmail,
+  userName,
+  ticketNumber,
+  ticketSubject,
+  messagePreview,
+  senderType,
+  isMember
+) => {
+  try {
+    const transporter = createTransporter();
+    const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@wishwavesclub.com';
+    const FRONTEND_BASE = process.env.FRONTEND_URL || 'https://www.wishwavesclub.com';
+    
+    const senderName = senderType === 'member' ? 'Member' : 'Support Team';
+    const ticketLink = isMember 
+      ? `${FRONTEND_BASE}/support?ticket=${ticketNumber}`
+      : `${FRONTEND_BASE}/admin/support?ticket=${ticketNumber}`;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Message - Wish Waves Club</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background: linear-gradient(135deg, #0a5d6f 0%, #0d7a8f 100%); padding: 40px 30px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">New Message Received</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px 30px;">
+                      <p style="color: #333333; font-size: 18px; line-height: 1.6; margin: 0 0 20px 0;">
+                        Dear ${userName},
+                      </p>
+                      
+                      <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        You have received a new message in your support ticket <strong>${ticketNumber}</strong>.
+                      </p>
+                      
+                      <div style="background-color: #f0f9fa; border-left: 4px solid #0a5d6f; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                        <p style="color: #0a5d6f; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">
+                          Ticket: ${ticketSubject}
+                        </p>
+                        <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
+                          <strong>From:</strong> ${senderName}
+                        </p>
+                        <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
+                          <strong>Message:</strong><br>
+                          "${messagePreview.length > 150 ? messagePreview.substring(0, 150) + '...' : messagePreview}"
+                        </p>
+                      </div>
+
+                      <div style="text-align: center; margin: 30px 0;">
+                        <a href="${ticketLink}" 
+                           style="display: inline-block; background-color: #0a5d6f; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                          View & Reply
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                      <p style="color: #6c757d; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
+                        <strong>Wish Waves Club</strong>
+                      </p>
+                      <p style="color: #6c757d; font-size: 12px; line-height: 1.6; margin: 0;">
+                        This is an automated notification. Please do not reply to this email.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+New Message - Wish Waves Club
+
+Dear ${userName},
+
+You have received a new message in your support ticket ${ticketNumber}.
+
+Ticket: ${ticketSubject}
+From: ${senderName}
+Message: "${messagePreview.length > 150 ? messagePreview.substring(0, 150) + '...' : messagePreview}"
+
+View & Reply: ${ticketLink}
+
+Wish Waves Club
+This is an automated notification. Please do not reply to this email.
+    `;
+    
+    const mailOptions = {
+      from: `"Wish Waves Club" <${emailFrom}>`,
+      to: userEmail,
+      subject: `New Message in Ticket ${ticketNumber} - Wish Waves Club`,
+      text: textContent,
+      html: htmlContent,
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Chat notification email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending chat notification email:', error);
+    throw error;
+  }
+};
+
 export default {
   sendWelcomeEmail,
+  sendPasswordResetEmail,
   sendSubscriptionThankYou,
   sendLoginNotification,
   sendInquiryEmail,
+  sendBankTransferEmail,
+  sendChatNotificationEmail,
 };
 

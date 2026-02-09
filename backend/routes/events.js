@@ -35,6 +35,121 @@ router.get('/', apiLimiter, async (req, res) => {
 });
 
 /**
+ * GET /api/events/:id
+ * Get event details by ID (public)
+ */
+router.get('/:id', apiLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      `SELECT e.*, er.allowed_tiers, er.time_window_start, er.time_window_end,
+              er.allow_multiple_entry, er.anti_passback_minutes
+       FROM events e
+       LEFT JOIN event_rules er ON e.id = er.event_id
+       WHERE e.id = ? AND e.is_active = true`,
+      [id]
+    );
+
+    if (!result.rows || result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Get event error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+    });
+  }
+});
+
+/**
+ * POST /api/events/:id/register
+ * Register member for an event (requires authentication)
+ */
+router.post('/:id/register', authenticateToken, apiLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const memberId = req.user.userId;
+    const userRole = req.user.role;
+
+    if (userRole !== 'member') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only members can register for events',
+      });
+    }
+
+    // Check if event exists and is active
+    const eventResult = await query(
+      'SELECT * FROM events WHERE id = ? AND is_active = true',
+      [id]
+    );
+
+    if (!eventResult.rows || eventResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found or not available',
+      });
+    }
+
+    const event = eventResult.rows[0];
+
+    // Check if already registered
+    const existingReg = await query(
+      'SELECT id FROM event_registrations WHERE event_id = ? AND member_id = ?',
+      [id, memberId]
+    );
+
+    if (existingReg.rows && existingReg.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Already registered for this event',
+      });
+    }
+
+    // Check capacity if max_capacity is set
+    if (event.max_capacity) {
+      const regCount = await query(
+        'SELECT COUNT(*) as count FROM event_registrations WHERE event_id = ?',
+        [id]
+      );
+      const currentCount = regCount.rows[0]?.count || 0;
+      if (currentCount >= event.max_capacity) {
+        return res.status(400).json({
+          success: false,
+          error: 'Event is full',
+        });
+      }
+    }
+
+    // Register member
+    await query(
+      'INSERT INTO event_registrations (event_id, member_id, registration_status) VALUES (?, ?, "registered")',
+      [id, memberId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Successfully registered for event',
+    });
+  } catch (error) {
+    console.error('Event registration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to register for event',
+    });
+  }
+});
+
+/**
  * POST /api/events/checkin
  * Check-in member to event via card
  */
